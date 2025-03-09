@@ -1,12 +1,19 @@
 from flask import Flask, request, jsonify
 
-# TODO RECALCUALTE EXPANSES WHEN USER LEAVES A GROUP
+# TODO RECALCUALTE EXPENSES WHEN USER LEAVES A GROUP?
 username = str
 
 app = Flask(__name__)
 
+
 # Temporary in-memory storage (Replace with a database later)
-expenses = []
+# {
+#     "group": str
+#     "username": str # user who paid (could have been entered by someone else)
+#     "amount": float
+#     "note": str
+# }
+expenses = []  # always plit equaly
 users: list[username] = []
 group = dict
 groups: list[group] = []
@@ -62,7 +69,7 @@ def create_group():
     }
 
     groups.append(new_group)
-    return jsonify(new_group), 200
+    return jsonify(new_group), 201
 
 
 @app.route("/groups/join", methods=["POST"])
@@ -142,14 +149,35 @@ def get_expenses():
 @app.route("/expenses", methods=["POST"])
 def add_expense():
     data = request.json  # Get JSON data from request
-    if "amount" not in data or "payer" not in data or "group" not in data:
+    if (
+        "amount" not in data
+        or "payer" not in data
+        or "group" not in data
+        or "note" not in data
+        or "username" not in data  # user who submitted the expanse
+    ):
         return jsonify({"error": "Missing required fields"}), 400
+
+    g = find_group(data)
+    if g is None:
+        return jsonify_error("Group not found"), 404
+
+    if data["username"] not in users:
+        return jsonify_error("User not found"), 404
+    if data["payer"] not in users:
+        return jsonify_error("Payer not found"), 404
+
+    if data["username"] not in g["members"]:
+        return jsonify_error(f"User is not a member of {data["group"]}"), 400
+    if data["payer"] not in g["members"]:
+        return jsonify_error(f"Payer is not a member of {data["group"]}"), 400
 
     expense = {
         "id": len(expenses) + 1,
         "amount": float(data["amount"]),
-        "payer": data["payer"],
+        "payer": data["payer"],  # user who paid, not the user who entered it
         "group": data["group"],
+        "note": data["note"],
     }
     expenses.append(expense)
     return jsonify(expense), 201  # 201 = Created
