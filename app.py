@@ -1,15 +1,14 @@
 from flask import Flask, request, jsonify
 
-
+# TODO RECALCUALTE EXPANSES WHEN USER LEAVES A GROUP
 username = str
-group = dict[str, str]
 
 app = Flask(__name__)
-SALT = "yum"
 
 # Temporary in-memory storage (Replace with a database later)
 expenses = []
 users: list[username] = []
+group = dict
 groups: list[group] = []
 
 
@@ -44,6 +43,7 @@ def login_user():
     return jsonify({"success": "login successful"}), 200
 
 
+# creator does not have to be a member but he was at some point
 @app.route("/groups/create", methods=["POST"])
 def create_group():
     data = request.json
@@ -57,7 +57,7 @@ def create_group():
 
     new_group = {
         "group": data["group"],
-        "username": data["username"],
+        "username": data["username"],  # this is the creator
         "members": [data["username"]],  # adding member twice does nothing
     }
 
@@ -82,7 +82,36 @@ def join_group():
     return jsonify(g), 200
 
 
-# TODO: LEAVE/KICK FROM GROUP
+# if creator leaves he is still the creator but not a member, so he can rejoin and keep the role
+@app.route("/groups/kick", methods=["PUT"])
+def kick_user():
+    data = request.json
+    # username is the user we want to kick
+    # creator is the user does the kicking
+    if "username" not in data or "kicker" not in data or "group" not in data:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    g = find_group(data)
+    if g is None:
+        return jsonify_error("Group not found"), 404
+
+    u = find_user(data)
+    if u is None:
+        return jsonify_error("User not found"), 404
+
+    if data["kicker"] not in users:
+        return jsonify_error("Kicker not found"), 404
+
+    # Creator can kick anybody
+    # Member can kick himself
+    if data["kicker"] != g["username"] and data["kicker"] != data["username"]:
+        return jsonify_error("Insuficient privladge"), 401
+
+    if data["kicker"] not in g["members"] or data["username"] not in g["members"]:
+        return jsonify_error("Not a member"), 404
+
+    g["members"].pop(g["members"].index(data["username"]))
+    return jsonify(g), 200
 
 
 @app.route("/users/groups", methods=["GET"])
