@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 
 
-user = str
+username = str
 group = dict[str, str]
 
 app = Flask(__name__)
@@ -9,12 +9,12 @@ SALT = "yum"
 
 # Temporary in-memory storage (Replace with a database later)
 expenses = []
-users: list[user] = []
+users: list[username] = []
 groups: list[group] = []
 
 
 # assumes valid data
-def find_user(data) -> user | None:
+def find_user(data) -> username | None:
     for u in users:
         if u == data["username"]:
             return u
@@ -81,7 +81,8 @@ def join_group():
         g["members"].append(data["username"])
     return jsonify(g), 200
 
-#TODO: LEAVE/KICK FROM GROUP
+
+# TODO: LEAVE/KICK FROM GROUP
 
 
 @app.route("/users/groups", methods=["GET"])
