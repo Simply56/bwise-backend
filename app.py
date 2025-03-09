@@ -176,6 +176,7 @@ def add_expense():
         "id": len(expenses) + 1,
         "amount": float(data["amount"]),
         "payer": data["payer"],  # user who paid, not the user who entered it
+        "username": data["username"], # use who submitted the expense
         "group": data["group"],
         "note": data["note"],
     }
