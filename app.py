@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 
 """ 
 The app will only display how much does the current user owe to each member
-it will not display hisotry or what the money was used for
+it will not display hisotry or what the money was used for (no notes in the app for now)
 
  """
 
@@ -14,8 +14,12 @@ username = str
 
 app = Flask(__name__)
 
+class JsonSerializable:
+    def to_json(self):
+        return jsonify(self.__dict__)
 
-class Expense:
+class Expense(JsonSerializable):
+    # some how jsonify just works with this
     id: int
     group: str
     payer: str
@@ -28,7 +32,6 @@ class Expense:
         self.payer = data["payer"]
         self.amount = data["amount"]
         self.submitter = data["submitter"]
-
 
 # Temporary in-memory storage (Replace with a database later)
 # {
@@ -192,7 +195,7 @@ def add_expense():
         return jsonify_error(f"Payer is not a member of {data['group']}"), 400
 
     expenses.append(expense)
-    return jsonify(expense), 201  # 201 = Created
+    return expense.to_json(), 201  # 201 = Created
 
 
 if __name__ == "__main__":
