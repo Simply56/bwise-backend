@@ -71,18 +71,18 @@ def login_user():
 @app.route("/groups/create", methods=["POST"])
 def create_group():
     data = request.json
-    if "group" not in data or "username" not in data:
+    if "group" not in data or "creator" not in data:
         return jsonify({"error": "Missing required fields"}), 400
 
     if find_group(data) is not None:
         return jsonify_error("Group already exists"), 409
-    if find_user(data) is None:
+    if data["creator"] not in users:
         return jsonify_error("User not found"), 404
 
     new_group = {
         "group": data["group"],
-        "username": data["username"],  # this is the creator
-        "members": [data["username"]],  # adding member twice does nothing
+        "creator": data["creator"],  # this is the creator
+        "members": [data["creator"]],  # adding member twice does nothing
     }
 
     groups.append(new_group)
