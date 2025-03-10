@@ -14,9 +14,11 @@ username = str
 
 app = Flask(__name__)
 
+
 class JsonSerializable:
     def to_json(self):
         return jsonify(self.__dict__)
+
 
 class Expense(JsonSerializable):
     # some how jsonify just works with this
@@ -28,10 +30,11 @@ class Expense(JsonSerializable):
 
     def __init__(self, data):
         self.id = len(expenses)
-        self.group = data["group"]
-        self.payer = data["payer"]
-        self.amount = data["amount"]
-        self.submitter = data["submitter"]
+        self.group = str(data["group"])
+        self.payer = str(data["payer"])
+        self.amount = float(data["amount"])
+        self.submitter = str(data["submitter"])
+
 
 # Temporary in-memory storage (Replace with a database later)
 # {
@@ -39,7 +42,7 @@ class Expense(JsonSerializable):
 #     "username": str # user who paid (could have been entered by someone else)
 #     "amount": float
 # }
-expenses = []  # always plit equaly
+expenses: list[Expense] = []  # always plit equaly
 users: list[username] = []
 group = dict
 groups: list[group] = []
@@ -69,7 +72,7 @@ def jsonify_error(msg: str):
 def login_user():
     data = request.json
     if "username" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
 
     if find_user(data) is None:
         users.append(data["username"])
@@ -81,7 +84,7 @@ def login_user():
 def create_group():
     data = request.json
     if "group" not in data or "creator" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
 
     if find_group(data) is not None:
         return jsonify_error("Group already exists"), 409
@@ -102,7 +105,7 @@ def create_group():
 def join_group():
     data = request.json
     if "group" not in data or "username" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
 
     g = find_group(data)
     if g is None:
@@ -122,7 +125,7 @@ def kick_user():
     # username is the user we want to kick
     # creator is the user does the kicking
     if "username" not in data or "kicker" not in data or "group" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
 
     g = find_group(data)
     if g is None:
@@ -151,7 +154,7 @@ def kick_user():
 def get_user_groups():
     data = request.json
     if "username" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
 
     current_user = find_user(data)
     if current_user is None:
@@ -178,7 +181,9 @@ def add_expense():
     try:
         expense = Expense(data)
     except KeyError:
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify_error("Missing required fields"), 400
+    except (ValueError, TypeError):
+        return jsonify_error("Invalid request"), 400
 
     g = find_group(data)
     if g is None:
