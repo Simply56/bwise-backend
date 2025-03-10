@@ -1,18 +1,25 @@
 from flask import Flask, request, jsonify
 
+""" 
+The app will only display how much does the current user owe to each member
+it will not display hisotry or what the money was used for
+ """
+
 # TODO RECALCUALTE EXPENSES WHEN USER LEAVES A GROUP?
-# TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY 
-# TODO MOVO A TRANSACTION MODEL, WHEN A USER PAYS FOR A THING AND OTHER MEMBERS OWE HIM MONEY 
+# TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
+# TODO MOVO A TRANSACTION MODEL, WHEN A USER PAYS FOR A THING AND OTHER MEMBERS OWE HIM MONEY
 #      IT SHOW UP AS IF HE PAID FRACTION OF THE TOTAL COST OT EACH OF THEM
 username = str
 
 app = Flask(__name__)
+
 
 class Expense:
     id: int
     group: str
     payer: str
     amount: float
+
     def __init__(self, data):
         self.id = len(expenses)
 
@@ -177,15 +184,15 @@ def add_expense():
         return jsonify_error("Payer not found"), 404
 
     if data["username"] not in g["members"]:
-        return jsonify_error(f"User is not a member of {data["group"]}"), 400
+        return jsonify_error(f"User is not a member of {data['group']}"), 400
     if data["payer"] not in g["members"]:
-        return jsonify_error(f"Payer is not a member of {data["group"]}"), 400
+        return jsonify_error(f"Payer is not a member of {data['group']}"), 400
 
     expense = {
         "id": len(expenses) + 1,
         "amount": float(data["amount"]),
         "payer": data["payer"],  # user who paid, not the user who entered it
-        "username": data["username"], # use who submitted the expense
+        "username": data["username"],  # use who submitted the expense
         "group": data["group"],
     }
     expenses.append(expense)
