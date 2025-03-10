@@ -1,9 +1,20 @@
 from flask import Flask, request, jsonify
 
 # TODO RECALCUALTE EXPENSES WHEN USER LEAVES A GROUP?
+# TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY 
+# TODO MOVO A TRANSACTION MODEL, WHEN A USER PAYS FOR A THING AND OTHER MEMBERS OWE HIM MONEY 
+#      IT SHOW UP AS IF HE PAID FRACTION OF THE TOTAL COST OT EACH OF THEM
 username = str
 
 app = Flask(__name__)
+
+class Expense:
+    id: int
+    group: str
+    payer: str
+    amount: float
+    def __init__(self, data):
+        self.id = len(expenses)
 
 
 # Temporary in-memory storage (Replace with a database later)
@@ -11,7 +22,6 @@ app = Flask(__name__)
 #     "group": str
 #     "username": str # user who paid (could have been entered by someone else)
 #     "amount": float
-#     "note": str
 # }
 expenses = []  # always plit equaly
 users: list[username] = []
@@ -153,7 +163,6 @@ def add_expense():
         "amount" not in data
         or "payer" not in data
         or "group" not in data
-        or "note" not in data
         or "username" not in data  # user who submitted the expanse
     ):
         return jsonify({"error": "Missing required fields"}), 400
@@ -178,7 +187,6 @@ def add_expense():
         "payer": data["payer"],  # user who paid, not the user who entered it
         "username": data["username"], # use who submitted the expense
         "group": data["group"],
-        "note": data["note"],
     }
     expenses.append(expense)
     return jsonify(expense), 201  # 201 = Created
