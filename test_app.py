@@ -1,6 +1,7 @@
 import pytest
 from app import app
 from flask import Flask, jsonify
+import tracemalloc
 
 
 @pytest.fixture
@@ -9,6 +10,7 @@ def client():
 
 
 def test_client(client):
+    tracemalloc.start()
     # login as tester
     body = {"username": "tester"}
     response = client.post("/login", json=body)
@@ -43,7 +45,7 @@ def test_client(client):
         "group": "test group 1",
     }
     assert response.status_code == 200
-
+ 
     # tester add an expense to test group 1
     body = {
         "group": "test group 1",
@@ -60,3 +62,10 @@ def test_client(client):
         "group": "test group 1",
     }
     assert response.status_code == 201
+
+    # Get memory statistics
+    current, peak = tracemalloc.get_traced_memory()
+    print(f"Current memory usage: {current / 1024**2:.2f} MB")
+    print(f"Peak memory usage: {peak / 1024**2:.2f} MB")
+
+    tracemalloc.stop()
