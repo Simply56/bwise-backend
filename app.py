@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import json
 
 """ 
 The app will only display how much does the current user owe to each member
@@ -15,12 +16,24 @@ username = str
 app = Flask(__name__)
 
 
-class JsonSerializable:
+class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
+    
+    def store(self, file_path: str):
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                data: list = json.load(file)  # Load the list from the JSON file
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = []  # If file is empty or doesn't exist, start with an empty list
+
+        data.append(self.__dict__)
+
+        with open(file_path, "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4)
 
 
-class Expense(JsonSerializable):
+class Expense(Jsonable):
     # some how jsonify just works with this
     id: int
     group: str
@@ -34,6 +47,7 @@ class Expense(JsonSerializable):
         self.payer = str(data["payer"])
         self.amount = float(data["amount"])
         self.submitter = str(data["submitter"])
+
 
 
 # Temporary in-memory storage (Replace with a database later)
@@ -199,6 +213,7 @@ def add_expense():
     if expense.payer not in g["members"]:
         return jsonify_error(f"Payer is not a member of {data['group']}"), 400
 
+    expense.store("expenses.json")
     expenses.append(expense)
     return expense.to_json(), 201  # 201 = Created
 
