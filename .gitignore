@@ -1,4 +1,9 @@
-__pycache__/
-.pytest_cache/
-.vscode/
-expenses.json
+# Ignore everything
+*
+
+# Allow specific files or directories
+!.gitignore
+!app.py
+!test_app.py
+!your_directory/
+!your_directory/**
