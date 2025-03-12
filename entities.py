@@ -6,7 +6,7 @@ class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
 
-    def store(self, file_path):
+    def store(self, file_path) -> None:
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 data: list = json.load(file)  # Load the list from the JSON file
