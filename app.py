@@ -7,7 +7,6 @@ app = Flask(__name__)
 """ 
 The app will only display how much does the current user owe to each member
 it will not display hisotry or what the money was used for (no notes in the app for now)
-
  """
 
 # TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY

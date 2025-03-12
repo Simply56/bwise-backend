@@ -9,7 +9,25 @@ def client():
     return app.test_client()
 
 
-def test_client(client):
+def test_client_login(client):
+    body = {"username": "tester"}
+    response = client.post("/login", json=body)
+    assert response.get_json() == {"success": "login successful"}
+    assert response.status_code == 200
+
+
+def test_client_post_data(client):
+    response = client.post("/submit", json={"name": "John"})
+    assert response.status_code == 201
+    assert response.get_json() == {"message": "Data received"}
+
+
+def test_client_not_found(client):
+    response = client.get("/nonexistent")
+    assert response.status_code == 404
+
+
+def test_client_happy_path(client):
     tracemalloc.start()
     # login as tester
     body = {"username": "tester"}
@@ -55,12 +73,16 @@ def test_client(client):
     }
     response = client.post("/expenses", json=body)
 
-    assert response.get_json().items() >= {
-        "payer": "tester",
-        "submitter": "tester",
-        "amount": 20,
-        "group": "test group 1",
-    }.items()  # check if response is a superset of expected
+    assert (
+        response.get_json().items()
+        >= {
+            "payer": "tester",
+            "submitter": "tester",
+            "amount": 20,
+            "group": "test group 1",
+        }.items()
+    )
+    # check if response is a superset of expected
     assert response.status_code == 201
 
     # Get memory statistics
