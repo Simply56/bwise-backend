@@ -20,53 +20,54 @@ def login_user():
     data = request.json
     try:
         u = User(data=data)
-
     except KeyError:
         return jsonify_error("Missing required fields"), 400
     except (ValueError, TypeError):
         return jsonify_error("Invalid request"), 400
 
-    if find_user(data) is None:
-        users.append(u)
-    return jsonify({"success": "login successful"}), 200
+    if u.good_to_store():
+        User.STORAGE.append(u)
+        u.store()
+    return u.to_json(), 200
 
 
 # creator does not have to be a member but he was at some point
 @app.route("/groups/create", methods=["POST"])
 def create_group():
     data = request.json
-    if "group" not in data or "creator" not in data:
+
+    try:
+        g = Group(data=data)
+    except KeyError:
         return jsonify_error("Missing required fields"), 400
+    except (ValueError, TypeError):
+        return jsonify_error("Invalid request"), 400
 
-    if find_group(data) is not None:
-        return jsonify_error("Group already exists"), 409
-    if data["creator"] not in users:
-        return jsonify_error("User not found"), 404
+    if not g.good_to_store():
+        return jsonify_error("Invalid group"), 400
 
-    new_group = {
-        "group": data["group"],
-        "creator": data["creator"],  # this is the creator
-        "members": [data["creator"]],  # adding member twice does nothing
-    }
+    Group.STORAGE.append(g)
+    g.store()
 
-    groups.append(new_group)
-    return jsonify(new_group), 201
+    return g.to_json(), 201
 
 
 @app.route("/groups/join", methods=["POST"])
 def join_group():
     data = request.json
-    if "group" not in data or "username" not in data:
+    if "group_name" not in data or "username" not in data:
         return jsonify_error("Missing required fields"), 400
 
-    g = find_group(data)
+    g = Group.get_group(data["group_name"])
     if g is None:
         return jsonify_error("Group does not exist"), 404
-    if find_user(data) is None:
+    u = User.get_user(data["username"])
+    if u is None:
         return jsonify_error("Cannot join because user does not exist"), 404
 
-    if data["username"] not in g["members"]:
-        g["members"].append(data["username"])
+    if not g.group_name in Membership.get_members(g.group_name):
+        m = Membership(u.username, g.group_name)
+        Membership.STORAGE.append(m)
     return jsonify(g), 200
 
 
@@ -108,14 +109,14 @@ def get_user_groups():
     if "username" not in data:
         return jsonify_error("Missing required fields"), 400
 
-    current_user = find_user(data)
-    if current_user is None:
+    u = User.get_user(data["username"])
+    if u is None:
         return jsonify_error("User not found"), 404
 
     relevant_groups = []
     for g in groups:
         for member in g["members"]:
-            if current_user == member:
+            if u == member:
                 relevant_groups.append(g)
     return jsonify(relevant_groups)
 

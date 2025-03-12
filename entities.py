@@ -65,7 +65,7 @@ class Group(Jsonable):
         self.creator = str(data.get("creator", creator))
 
     @staticmethod
-    def get_group(group_name) -> "Group" | None:
+    def get_group(group_name: str) -> "Group" | None:
         for group in Group.STORAGE:
             if group.group_name == group_name:
                 return group
