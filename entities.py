@@ -2,6 +2,21 @@ import json
 from flask import jsonify
 
 
+# class Hashable:
+#     def __eq__(self, other):
+#         return (
+#             isinstance(other, type(self)) and self.id == other.id
+#         )  # Define equality based on `id`
+#     # TODO: VERIFY THAT type(self) WORKS
+
+#     def __hash__(self):
+#         return hash(self.id)  # Ensures uniqueness in a set
+
+#     def __repr__(self):
+#         return f"MyData(id={self.id}, payer={self.payer})"
+
+
+# TODO: ADD A SECOND CONSTRUCTOR
 class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
@@ -35,7 +50,7 @@ class Group(Jsonable):
         self.group_name: str = data["group_name"]
         self.creator: str = data["creator"]
 
-    def store(self, file_path):
+    def store(self):
         return super().store("groups.json")
 
 
@@ -46,7 +61,7 @@ class Memebership(Jsonable):
         self.username: str = data["username"]
         self.group_name: str = data["group_name"]
 
-    def store(self, file_path):
+    def store(self):
         return super().store("memberships.json")
 
 
