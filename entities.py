@@ -36,7 +36,7 @@ class User(Jsonable):
 
     @staticmethod
     def load(storage: list):
-        raw_data = super().load_raw_json(User.FILE_NAME)
+        raw_data = Jsonable.load_raw_json(User.FILE_NAME)
         for raw_json_dict in raw_data:
             storage.append(User(data=raw_json_dict))
 
@@ -54,7 +54,7 @@ class Group(Jsonable):
 
     @staticmethod
     def load(storage: list):
-        raw_data = super().load_raw_json(Group.FILE_NAME)
+        raw_data = Jsonable.load_raw_json(Group.FILE_NAME)
         for raw_json_dict in raw_data:
             storage.append(Group(data=raw_json_dict))
 
@@ -72,7 +72,7 @@ class Membership(Jsonable):
 
     @staticmethod
     def load(storage: list):
-        raw_data = super().load_raw_json(Membership.FILE_NAME)
+        raw_data = Jsonable.load_raw_json(Membership.FILE_NAME)
         for raw_json_dict in raw_data:
             storage.append(Membership(data=raw_json_dict))
 
@@ -96,6 +96,6 @@ class Transaction(Jsonable):
 
     @staticmethod
     def load(storage: list):
-        raw_data = super().load_raw_json(Transaction.FILE_NAME)
+        raw_data = Jsonable.load_raw_json(Transaction.FILE_NAME)
         for raw_json_dict in raw_data:
             storage.append(Transaction(data=raw_json_dict))
