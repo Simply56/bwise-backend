@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from entities import Transaction, User, Group, Membership
-
+from random import randint
 
 app = Flask(__name__)
 
@@ -10,11 +10,6 @@ it will not display hisotry or what the money was used for (no notes in the app 
  """
 
 # TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
-
-transactions: list[Transaction] = []  # always plit equaly
-users: list[User] = []
-group = dict
-groups: list[group] = []
 
 
 # assumes valid data
@@ -26,7 +21,7 @@ def find_user(data) -> User | None:
 
 
 # assumes valid data
-def find_group(data) -> group | None:
+def find_group(data) -> Group | None:
     for g in groups:
         if g["group"] == data["group"]:
             return g
@@ -174,4 +169,15 @@ def add_expense():
 
 
 if __name__ == "__main__":
+    users: list[User] = []
+    groups: list[Group] = []
+    memberships: list[Membership] = []
+    transactions: list[Transaction] = []
+
+    User(str(randint(1, 1000))).store()
+    User.load(users)
+    Group.load(groups)
+    Membership.load(memberships)
+    Transaction.load(transactions)
+
     app.run(host="0.0.0.0", port=5000, debug=False)
