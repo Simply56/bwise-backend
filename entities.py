@@ -1,6 +1,7 @@
 import json
 from flask import jsonify
 
+
 class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)

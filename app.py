@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from entities import Expense
+
 """ 
 The app will only display how much does the current user owe to each member
 it will not display hisotry or what the money was used for (no notes in the app for now)
@@ -12,8 +13,6 @@ it will not display hisotry or what the money was used for (no notes in the app 
 username = str
 
 app = Flask(__name__)
-
-
 
 # Temporary in-memory storage (Replace with a database later)
 # {
