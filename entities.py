@@ -1,7 +1,10 @@
+from __future__ import annotations  # Postponed evaluation of type hints
 import json
 from flask import jsonify
 
 # TODO: CURRENTLY WHEN WE CONSTRUCT FROM DATA NO EXCEPTION IS RAISED IF KEY IS MISSING
+# TODO: IF I MAKE THE ATRIBUTES POINT TO THE ACTUAL OBJECTS I CAN NO LONGER
+#       IMPLICITLY CONVERT THEM
 
 
 class Jsonable:
@@ -28,14 +31,14 @@ class Jsonable:
 
 class User(Jsonable):
     FILE_NAME = "users.json"
-    STORAGE: list["User"] = []
+    STORAGE: list[User] = []
 
     def __init__(self, username="", data=None):
         data = data or {}  # Ensure data is a dictionary
         self.username = str(data.get("username", username))
 
     @staticmethod
-    def get_user(username: str) -> "User" | None:
+    def get_user(username: str) -> None | User:
         for user in User.STORAGE:
             if user.username == username:
                 return user
@@ -64,12 +67,10 @@ class Group(Jsonable):
     def __init__(self, group_name="", creator="", data=None):
         data = data or {}  # Ensure data is a dictionary
         self.group_name = str(data.get("group_name", group_name))
-        self.creator = str(data.get("creator", creator))  # TODO: SHOULD THIS BE USER?
+        self.creator = str(data.get("creator", creator))
 
         # for loading from json
-        self.members: list[User] = list(
-            data.get("members", User.get_user(self.creator))
-        )
+        self.members: list[str] = list(data.get("members", self.creator))
 
     @staticmethod
     def get_group(group_name: str) -> "Group" | None:
@@ -139,9 +140,3 @@ class Transaction(Jsonable):
             return False  # recipeint not a member
 
         return True
-
-
-# u1 = User("1")
-# User.STORAGE.append(u1)
-# u2 = User("2")
-# print(u2.good_to_store())
