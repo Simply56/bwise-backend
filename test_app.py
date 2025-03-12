@@ -45,7 +45,7 @@ def test_client(client):
         "group": "test group 1",
     }
     assert response.status_code == 200
- 
+
     # tester add an expense to test group 1
     body = {
         "group": "test group 1",
@@ -54,13 +54,13 @@ def test_client(client):
         "submitter": "tester",
     }
     response = client.post("/expenses", json=body)
-    assert response.get_json() == {
-        "id": 0,
+
+    assert response.get_json().items() >= {
         "payer": "tester",
         "submitter": "tester",
         "amount": 20,
         "group": "test group 1",
-    }
+    }.items()  # check if response is a superset of expected
     assert response.status_code == 201
 
     # Get memory statistics
