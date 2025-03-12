@@ -23,10 +23,9 @@ class User(Jsonable):
     def __init__(self, username="", data=None):
         super().__init__()
 
-        data = data or {}
         self.username = str(data.get("username", username))
 
-    def store(self, file_path):
+    def store(self):
         return super().store("users.json")
 
 
