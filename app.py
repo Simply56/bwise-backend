@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
-import json
-
+from entities import Expense
 """ 
 The app will only display how much does the current user owe to each member
 it will not display hisotry or what the money was used for (no notes in the app for now)
@@ -14,41 +13,6 @@ username = str
 
 app = Flask(__name__)
 
-
-class Jsonable:
-    def to_json(self):
-        return jsonify(self.__dict__)
-
-    def store(self, file_path: str):
-        try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                data: list = json.load(file)  # Load the list from the JSON file
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = []  # If file is empty or doesn't exist, start with an empty list
-
-        data.append(self.__dict__)
-
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(data, file, indent=4)
-
-
-class Expense(Jsonable):
-    # some how jsonify just works with this
-    id: int
-    group: str
-    payer: str
-    submitter: str
-    amount: float
-
-    def __init__(self, data):
-        self.id = len(expenses)
-        self.group = str(data["group"])
-        self.payer = str(data["payer"])
-        self.amount = float(data["amount"])
-        self.submitter = str(data["submitter"])
-
-    def store(self):
-        return super().store("expenses.json")
 
 
 # Temporary in-memory storage (Replace with a database later)
