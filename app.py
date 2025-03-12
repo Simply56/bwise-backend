@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from entities import Transaction, User, Group, Membership
-from random import randint
 
 app = Flask(__name__)
 
@@ -35,11 +34,16 @@ def jsonify_error(msg: str):
 @app.route("/login", methods=["POST"])
 def login_user():
     data = request.json
-    if "username" not in data:
+    try:
+        u = User(data=data)
+
+    except KeyError:
         return jsonify_error("Missing required fields"), 400
+    except (ValueError, TypeError):
+        return jsonify_error("Invalid request"), 400
 
     if find_user(data) is None:
-        users.append(data["username"])
+        users.append(u)
     return jsonify({"success": "login successful"}), 200
 
 
@@ -169,13 +173,9 @@ def add_expense():
 
 
 if __name__ == "__main__":
-    users: list[User] = []
-    groups: list[Group] = []
-    memberships: list[Membership] = []
-    transactions: list[Transaction] = []
-
-    User(str(randint(1, 1000))).store()
-    User.load(users)
-    Group.load(groups)
-    Membership.load(memberships)
-    Transaction.load(transactions)
+    User("joe").store()
+    User.load()
+    print(User.STORAGE)
+    Group.load()
+    Membership.load()
+    Transaction.load()

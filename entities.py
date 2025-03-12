@@ -26,6 +26,7 @@ class Jsonable:
 
 class User(Jsonable):
     FILE_NAME = "users.json"
+    STORAGE: list = []
 
     def __init__(self, username="", data=None):
         data = data or {}  # Ensure data is a dictionary
@@ -38,11 +39,12 @@ class User(Jsonable):
     def load(storage: list):
         raw_data = Jsonable.load_raw_json(User.FILE_NAME)
         for raw_json_dict in raw_data:
-            storage.append(User(data=raw_json_dict))
+            User.STORAGE.append(User(data=raw_json_dict))
 
 
 class Group(Jsonable):
     FILE_NAME = "groups.json"
+    STORAGE: list = []
 
     def __init__(self, group_name="", creator="", data=None):
         data = data or {}  # Ensure data is a dictionary
@@ -53,14 +55,15 @@ class Group(Jsonable):
         return super().store(Group.FILE_NAME)
 
     @staticmethod
-    def load(storage: list):
+    def load():
         raw_data = Jsonable.load_raw_json(Group.FILE_NAME)
         for raw_json_dict in raw_data:
-            storage.append(Group(data=raw_json_dict))
+            Group.STORAGE.append(Group(data=raw_json_dict))
 
 
 class Membership(Jsonable):
     FILE_NAME = "memberships.json"
+    STORAGE: list = []
 
     def __init__(self, username="", group_name="", data=None):
         data = data or {}  # Ensure data is a dictionary
@@ -71,15 +74,16 @@ class Membership(Jsonable):
         return super().store(Membership.FILE_NAME)
 
     @staticmethod
-    def load(storage: list):
+    def load():
         raw_data = Jsonable.load_raw_json(Membership.FILE_NAME)
         for raw_json_dict in raw_data:
-            storage.append(Membership(data=raw_json_dict))
+            Membership.STORAGE.append(Membership(data=raw_json_dict))
 
 
 class Transaction(Jsonable):
     FILE_NAME = "transactions.json"
     LAST_ID: int = 0
+    STORAGE: list = []
 
     def __init__(self, group="", payer="", recipient="", amount=0.0, data=None):
         Transaction.LAST_ID += 1
@@ -95,7 +99,7 @@ class Transaction(Jsonable):
         return super().store(Transaction.FILE_NAME)
 
     @staticmethod
-    def load(storage: list):
+    def load():
         raw_data = Jsonable.load_raw_json(Transaction.FILE_NAME)
         for raw_json_dict in raw_data:
-            storage.append(Transaction(data=raw_json_dict))
+            Transaction.STORAGE.append(Transaction(data=raw_json_dict))
