@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify
-from entities import Expense
+from entities import Transaction, User, Group, Memebership
+
+
+app = Flask(__name__)
 
 """ 
 The app will only display how much does the current user owe to each member
@@ -10,18 +13,15 @@ it will not display hisotry or what the money was used for (no notes in the app 
 # TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
 # TODO MOVO A TRANSACTION MODEL, WHEN A USER PAYS FOR A THING AND OTHER MEMBERS OWE HIM MONEY
 #      IT SHOW UP AS IF HE PAID FRACTION OF THE TOTAL COST OT EACH OF THEM
-username = str
 
-app = Flask(__name__)
-
-expenses: list[Expense] = []  # always plit equaly
-users: list[username] = []
+transactions: list[Transaction] = []  # always plit equaly
+users: list[User] = []
 group = dict
 groups: list[group] = []
 
 
 # assumes valid data
-def find_user(data) -> username | None:
+def find_user(data) -> User | None:
     for u in users:
         if u == data["username"]:
             return u
@@ -143,7 +143,7 @@ def get_user_groups():
 # GET: Fetch all expenses
 @app.route("/expenses", methods=["GET"])
 def get_expenses():
-    return jsonify(expenses)
+    return jsonify(transactions)
 
 
 # POST: Add a new expense
@@ -151,7 +151,7 @@ def get_expenses():
 def add_expense():
     data = request.json  # Get JSON data from request
     try:
-        expense = Expense(data)
+        expense = Transaction(data)
     except KeyError:
         return jsonify_error("Missing required fields"), 400
     except (ValueError, TypeError):
@@ -172,7 +172,7 @@ def add_expense():
         return jsonify_error(f"Payer is not a member of {data['group']}"), 400
 
     expense.store()
-    expenses.append(expense)
+    transactions.append(expense)
     return expense.to_json(), 201  # 201 = Created
 
 

@@ -50,14 +50,14 @@ class Memebership(Jsonable):
         return super().store("memberships.json")
 
 
-class Expense(Jsonable):
+class Transaction(Jsonable):
     LAST_ID: int = 0
 
     def __init__(self, data):
         super().__init__()
 
-        Expense.LAST_ID += 1
-        self.id: int = Expense.LAST_ID
+        Transaction.LAST_ID += 1
+        self.id: int = Transaction.LAST_ID
         self.group: str = str(data["group"])
         self.payer: str = str(data["payer"])
         self.amount: int = float(data["amount"])
