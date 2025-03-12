@@ -9,9 +9,9 @@ class Jsonable:
     def store(self, file_path) -> None:
         try:
             with open(file_path, "r", encoding="utf-8") as file:
-                data: list = json.load(file)  # Load the list from the JSON file
+                data: list = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError):
-            data = []  # If file is empty or doesn't exist, start with an empty list
+            data = []
 
         data.append(self.__dict__)
 
@@ -22,10 +22,9 @@ class Jsonable:
 class User(Jsonable):
     def __init__(self, username="", data=None):
         super().__init__()
-        if data:
-            self.username = str(data["username"])
-        else:
-            self.username = str(username)
+
+        data = data or {}
+        self.username = str(data.get("username", username))
 
     def store(self, file_path):
         return super().store("users.json")
@@ -34,26 +33,22 @@ class User(Jsonable):
 class Group(Jsonable):
     def __init__(self, group_name="", creator="", data=None):
         super().__init__()
-        if data:
-            self.group_name = str(data["group_name"])
-            self.creator = str(data["creator"])
-        else:
-            self.group_name = str(group_name)
-            self.group_name = str(creator)
+
+        data = data or {}  # Ensure data is a dictionary
+        self.group_name = str(data.get("group_name", group_name))
+        self.creator = str(data.get("creator", creator))
 
     def store(self):
         return super().store("groups.json")
 
 
-class Memebership(Jsonable):
+class Membership(Jsonable):
     def __init__(self, username="", group_name="", data=None):
         super().__init__()
-        if data:
-            self.username = str(data["username"])
-            self.group_name = str(data["group_name"])
-        else:
-            self.username = str(username)
-            self.group_name = str(group_name)
+
+        data = data or {}  # Ensure data is a dictionary
+        self.username = str(data.get("username", username))
+        self.group_name = str(data.get("group_name", group_name))
 
     def store(self):
         return super().store("memberships.json")
@@ -68,16 +63,11 @@ class Transaction(Jsonable):
         Transaction.LAST_ID += 1
         self.id: int = Transaction.LAST_ID
 
-        if data:
-            self.group = str(data["group"])
-            self.payer = str(data["payer"])
-            self.recipient = str(data["recipient"])
-            self.amount = float(data["amount"])
-        else:
-            self.group = str(group)
-            self.payer = str(payer)
-            self.recipient = str(recipient)
-            self.amount = float(amount)
+        data = data or {}
+        self.group = str(data.get("group", group))
+        self.payer = str(data.get("payer", payer))
+        self.recipient = str(data.get("recipient", recipient))
+        self.amount = float(data.get("amount", amount))
 
     def store(self):
         return super().store("expenses.json")
