@@ -6,7 +6,7 @@ class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
 
-    def store(self, file_path: str):
+    def store(self, file_path):
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 data: list = json.load(file)  # Load the list from the JSON file
@@ -23,9 +23,9 @@ class User(Jsonable):
     def __init__(self, username="", data=None):
         super().__init__()
         if data:
-            self.username: str = str(data["username"])
+            self.username = str(data["username"])
         else:
-            self.username: str = str(username)
+            self.username = str(username)
 
     def store(self, file_path):
         return super().store("users.json")
@@ -35,11 +35,11 @@ class Group(Jsonable):
     def __init__(self, group_name="", creator="", data=None):
         super().__init__()
         if data:
-            self.group_name: str = str(data["group_name"])
-            self.creator: str = str(data["creator"])
+            self.group_name = str(data["group_name"])
+            self.creator = str(data["creator"])
         else:
-            self.group_name: str = str(group_name)
-            self.group_name: str = str(creator)
+            self.group_name = str(group_name)
+            self.group_name = str(creator)
 
     def store(self):
         return super().store("groups.json")
@@ -49,11 +49,11 @@ class Memebership(Jsonable):
     def __init__(self, username="", group_name="", data=None):
         super().__init__()
         if data:
-            self.username: str = str(data["username"])
-            self.group_name: str = str(data["group_name"])
+            self.username = str(data["username"])
+            self.group_name = str(data["group_name"])
         else:
-            self.username: str = str(username)
-            self.group_name: str = str(group_name)
+            self.username = str(username)
+            self.group_name = str(group_name)
 
     def store(self):
         return super().store("memberships.json")
@@ -69,10 +69,10 @@ class Transaction(Jsonable):
         self.id: int = Transaction.LAST_ID
 
         if data:
-            self.group: str = str(data["group"])
-            self.payer: str = str(data["payer"])
-            self.recipient: str = str(data["recipient"])
-            self.amount: float = float(data["amount"])
+            self.group = str(data["group"])
+            self.payer = str(data["payer"])
+            self.recipient = str(data["recipient"])
+            self.amount = float(data["amount"])
         else:
             self.group = str(group)
             self.payer = str(payer)
