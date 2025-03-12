@@ -33,6 +33,13 @@ class User(Jsonable):
         self.username = str(data.get("username", username))
 
     @staticmethod
+    def get_user(username: str) -> "User" | None:
+        for user in User.STORAGE:
+            if user.username == username:
+                return user
+        return None
+
+    @staticmethod
     def load():
         raw_data = Jsonable.load_raw_json(User.FILE_NAME)
         for raw_json_dict in raw_data:
@@ -56,6 +63,13 @@ class Group(Jsonable):
         data = data or {}  # Ensure data is a dictionary
         self.group_name = str(data.get("group_name", group_name))
         self.creator = str(data.get("creator", creator))
+
+    @staticmethod
+    def get_group(group_name) -> "Group" | None:
+        for group in Group.STORAGE:
+            if group.group_name == group_name:
+                return group
+        return None
 
     @staticmethod
     def load():

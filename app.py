@@ -11,22 +11,6 @@ it will not display hisotry or what the money was used for (no notes in the app 
 # TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
 
 
-# assumes valid data
-def find_user(data) -> User | None:
-    for u in users:
-        if u == data["username"]:
-            return u
-    return None
-
-
-# assumes valid data
-def find_group(data) -> Group | None:
-    for g in groups:
-        if g["group"] == data["group"]:
-            return g
-    return None
-
-
 def jsonify_error(msg: str):
     return jsonify({"error": msg})
 
