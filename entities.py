@@ -39,6 +39,17 @@ class Group(Jsonable):
         return super().store("groups.json")
 
 
+class Memebership(Jsonable):
+    def __init__(self, data):
+        super().__init__()
+
+        self.username: str = data["username"]
+        self.group_name: str = data["group_name"]
+
+    def store(self, file_path):
+        return super().store("memberships.json")
+
+
 class Expense(Jsonable):
     LAST_ID: int = 0
 
