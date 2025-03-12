@@ -4,6 +4,7 @@
 # Allow specific files or directories
 !.gitignore
 !app.py
+!entities.py
 !test_app.py
 !your_directory/
 !your_directory/**
