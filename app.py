@@ -19,7 +19,7 @@ app = Flask(__name__)
 class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
-    
+
     def store(self, file_path: str):
         try:
             with open(file_path, "r", encoding="utf-8") as file:
@@ -48,6 +48,8 @@ class Expense(Jsonable):
         self.amount = float(data["amount"])
         self.submitter = str(data["submitter"])
 
+    def store(self):
+        return super().store("expenses.json")
 
 
 # Temporary in-memory storage (Replace with a database later)
@@ -213,7 +215,7 @@ def add_expense():
     if expense.payer not in g["members"]:
         return jsonify_error(f"Payer is not a member of {data['group']}"), 400
 
-    expense.store("expenses.json")
+    expense.store()
     expenses.append(expense)
     return expense.to_json(), 201  # 201 = Created
 
