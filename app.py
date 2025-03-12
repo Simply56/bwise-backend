@@ -11,8 +11,6 @@ it will not display hisotry or what the money was used for (no notes in the app 
  """
 
 # TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
-# TODO MOVO A TRANSACTION MODEL, WHEN A USER PAYS FOR A THING AND OTHER MEMBERS OWE HIM MONEY
-#      IT SHOW UP AS IF HE PAID FRACTION OF THE TOTAL COST OT EACH OF THEM
 
 transactions: list[Transaction] = []  # always plit equaly
 users: list[User] = []
