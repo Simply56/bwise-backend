@@ -7,19 +7,14 @@ class Jsonable:
         return jsonify(self.__dict__)
 
     def store(self, file_path) -> None:
-        try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                data: list = json.load(file)
-
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = []
-
+        data = self.load_raw_json(file_path)
         data.append(self.__dict__)
 
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
 
-    def load_raw_json(self, file_path: str) -> list[dict]:
+    @staticmethod
+    def load_raw_json(file_path: str) -> list[dict]:
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 raw_data: list[dict] = json.load(file)
@@ -39,6 +34,12 @@ class User(Jsonable):
     def store(self):
         return super().store(User.FILE_NAME)
 
+    @staticmethod
+    def load(storage: list):
+        raw_data = super().load_raw_json(User.FILE_NAME)
+        for raw_json_dict in raw_data:
+            storage.append(User(data=raw_json_dict))
+
 
 class Group(Jsonable):
     FILE_NAME = "groups.json"
@@ -51,6 +52,12 @@ class Group(Jsonable):
     def store(self):
         return super().store(Group.FILE_NAME)
 
+    @staticmethod
+    def load(storage: list):
+        raw_data = super().load_raw_json(Group.FILE_NAME)
+        for raw_json_dict in raw_data:
+            storage.append(Group(data=raw_json_dict))
+
 
 class Membership(Jsonable):
     FILE_NAME = "memberships.json"
@@ -62,6 +69,12 @@ class Membership(Jsonable):
 
     def store(self):
         return super().store(Membership.FILE_NAME)
+
+    @staticmethod
+    def load(storage: list):
+        raw_data = super().load_raw_json(Membership.FILE_NAME)
+        for raw_json_dict in raw_data:
+            storage.append(Membership(data=raw_json_dict))
 
 
 class Transaction(Jsonable):
@@ -80,3 +93,9 @@ class Transaction(Jsonable):
 
     def store(self):
         return super().store(Transaction.FILE_NAME)
+
+    @staticmethod
+    def load(storage: list):
+        raw_data = super().load_raw_json(Transaction.FILE_NAME)
+        for raw_json_dict in raw_data:
+            storage.append(Transaction(data=raw_json_dict))
