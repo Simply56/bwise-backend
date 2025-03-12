@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from entities import Transaction, User, Group, Memebership
+from entities import Transaction, User, Group, Membership
 
 
 app = Flask(__name__)
