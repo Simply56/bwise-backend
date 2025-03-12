@@ -14,12 +14,6 @@ username = str
 
 app = Flask(__name__)
 
-# Temporary in-memory storage (Replace with a database later)
-# {
-#     "group": str
-#     "username": str # user who paid (could have been entered by someone else)
-#     "amount": float
-# }
 expenses: list[Expense] = []  # always plit equaly
 users: list[username] = []
 group = dict

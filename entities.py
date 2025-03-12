@@ -19,10 +19,21 @@ class Jsonable:
             json.dump(data, file, indent=4)
 
 
+class User(Jsonable):
+    def __init__(self, data):
+        super().__init__()
+        self.username: str = str(data["username"])
+
+    def store(self, file_path):
+        return super().store("users.json")
+
+
 class Expense(Jsonable):
     LAST_ID: int = 0
 
     def __init__(self, data):
+        super().__init__()
+
         Expense.LAST_ID += 1
         self.id: int = Expense.LAST_ID
         self.group: str = str(data["group"])
