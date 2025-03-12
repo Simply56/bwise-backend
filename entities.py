@@ -1,6 +1,8 @@
 import json
 from flask import jsonify
 
+# TODO: CURRENTLY WHEN WE CONSTRUCT FROM DATA NO EXCEPTION IS RAISED IF KEY IS MISSING
+
 
 class Jsonable:
     def to_json(self):
@@ -62,7 +64,12 @@ class Group(Jsonable):
     def __init__(self, group_name="", creator="", data=None):
         data = data or {}  # Ensure data is a dictionary
         self.group_name = str(data.get("group_name", group_name))
-        self.creator = str(data.get("creator", creator))
+        self.creator = str(data.get("creator", creator))  # TODO: SHOULD THIS BE USER?
+
+        # for loading from json
+        self.members: list[User] = list(
+            data.get("members", User.get_user(self.creator))
+        )
 
     @staticmethod
     def get_group(group_name: str) -> "Group" | None:
@@ -86,42 +93,6 @@ class Group(Jsonable):
         for group in Group.STORAGE:
             if group.group_name == self.group_name:
                 return False  # group_name is taken
-        return True
-
-
-class Membership(Jsonable):
-    FILE_NAME = "memberships.json"
-    STORAGE: list["Membership"] = []
-
-    def __init__(self, username="", group_name="", data=None):
-        data = data or {}  # Ensure data is a dictionary
-        self.username = str(data.get("username", username))
-        self.group_name = str(data.get("group_name", group_name))
-
-    @staticmethod  # TODO: THIS SMELLS BAD
-    def get_members(group_name: str) -> list[User]:
-        result = []
-        for membership in Membership.STORAGE:
-            if membership.group_name == group_name:
-                for user in User.STORAGE:
-                    if user.username == membership.username:
-                        result.append(user)
-        return result
-
-    @staticmethod
-    def load():
-        raw_data = Jsonable.load_raw_json(Membership.FILE_NAME)
-        for raw_json_dict in raw_data:
-            Membership.STORAGE.append(Membership(data=raw_json_dict))
-
-    def store(self):
-        return super().store(Membership.FILE_NAME)
-
-    def good_to_store(self):
-        if not any(lambda u: u.username == self.username, User.STORAGE):
-            return False  # user not found
-        if not any(lambda g: g.group_name == self.group_name, Group.STORAGE):
-            return False  # group not found
         return True
 
 
@@ -157,12 +128,13 @@ class Transaction(Jsonable):
         if not any(lambda g: g.group_name == self.group_name, Group.STORAGE):
             return False  # group not found
         if not any(
-            lambda u: u.username == self.payer, Membership.get_members(self.group_name)
+            lambda u: u.username == self.payer,
+            Group.get_group(self.group_name).members,
         ):
             return False  # payer not a member
         if not any(
             lambda u: u.username == self.recipient,
-            Membership.get_members(self.group_name),
+            Group.get_group(self.group_name).members,
         ):
             return False  # recipeint not a member
 
