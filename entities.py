@@ -2,21 +2,6 @@ import json
 from flask import jsonify
 
 
-# class Hashable:
-#     def __eq__(self, other):
-#         return (
-#             isinstance(other, type(self)) and self.id == other.id
-#         )  # Define equality based on `id`
-#     # TODO: VERIFY THAT type(self) WORKS
-
-#     def __hash__(self):
-#         return hash(self.id)  # Ensures uniqueness in a set
-
-#     def __repr__(self):
-#         return f"MyData(id={self.id}, payer={self.payer})"
-
-
-# TODO: ADD A SECOND CONSTRUCTOR
 class Jsonable:
     def to_json(self):
         return jsonify(self.__dict__)
@@ -35,31 +20,40 @@ class Jsonable:
 
 
 class User(Jsonable):
-    def __init__(self, data):
+    def __init__(self, username="", data=None):
         super().__init__()
-        self.username: str = str(data["username"])
+        if data:
+            self.username: str = str(data["username"])
+        else:
+            self.username: str = str(username)
 
     def store(self, file_path):
         return super().store("users.json")
 
 
 class Group(Jsonable):
-    def __init__(self, data):
+    def __init__(self, group_name="", creator="", data=None):
         super().__init__()
-
-        self.group_name: str = data["group_name"]
-        self.creator: str = data["creator"]
+        if data:
+            self.group_name: str = str(data["group_name"])
+            self.creator: str = str(data["creator"])
+        else:
+            self.group_name: str = str(group_name)
+            self.group_name: str = str(creator)
 
     def store(self):
         return super().store("groups.json")
 
 
 class Memebership(Jsonable):
-    def __init__(self, data):
+    def __init__(self, username="", group_name="", data=None):
         super().__init__()
-
-        self.username: str = data["username"]
-        self.group_name: str = data["group_name"]
+        if data:
+            self.username: str = str(data["username"])
+            self.group_name: str = str(data["group_name"])
+        else:
+            self.username: str = str(username)
+            self.group_name: str = str(group_name)
 
     def store(self):
         return super().store("memberships.json")
@@ -68,15 +62,22 @@ class Memebership(Jsonable):
 class Transaction(Jsonable):
     LAST_ID: int = 0
 
-    def __init__(self, data):
+    def __init__(self, group="", payer="", recipient="", amount=0.0, data=None):
         super().__init__()
 
         Transaction.LAST_ID += 1
         self.id: int = Transaction.LAST_ID
-        self.group: str = str(data["group"])
-        self.payer: str = str(data["payer"])
-        self.amount: int = float(data["amount"])
-        self.submitter: str = str(data["submitter"])
+
+        if data:
+            self.group: str = str(data["group"])
+            self.payer: str = str(data["payer"])
+            self.recipient: str = str(data["recipient"])
+            self.amount: float = float(data["amount"])
+        else:
+            self.group = str(group)
+            self.payer = str(payer)
+            self.recipient = str(recipient)
+            self.amount = float(amount)
 
     def store(self):
         return super().store("expenses.json")
