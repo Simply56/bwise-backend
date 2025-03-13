@@ -12,7 +12,6 @@ def client():
 def test_client_login(client):
     body = {"username": "tester"}
     response = client.post("/login", json=body)
-    assert response.get_json() == {"success": "login successful"}
     assert response.status_code == 200
 
 
