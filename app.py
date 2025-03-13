@@ -1,151 +1,389 @@
 from flask import Flask, request, jsonify
-from entities import Transaction, User, Group
+import json
+import os
 
 app = Flask(__name__)
 
-""" 
-The app will only display how much does the current user owe to each member
-it will not display hisotry or what the money was used for (no notes in the app for now)
- """
 
-# TODO SETTLE UP GROUP BUTTON THAT DELETES TRANSACTION HISTORY
+# Data models
+class User:
+    def __init__(self, username: str):
+        self.username = str(username)
 
-
-def jsonify_error(msg: str):
-    return jsonify({"error": msg})
+    def to_dict(self):
+        return {"username": self.username}
 
 
+class Transaction:
+    def __init__(self, from_user: str, to_user: str, amount: float, group_name: str):
+        self.from_user = str(from_user)  # User who owes money
+        self.to_user = str(to_user)  # User who is owed money
+        self.amount = float(amount)
+        self.group_name = str(group_name)
+
+    def to_dict(self):
+        return {
+            "from_user": self.from_user,
+            "to_user": self.to_user,
+            "amount": self.amount,
+            "group_name": self.group_name,
+        }
+
+
+class Group:
+    def __init__(self, name, creator):
+        self.name = str(name)
+        self.creator = str(creator)
+        self.members = [str(creator)]
+        self.transactions: list[Transaction] = []
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "creator": self.creator,
+            "members": self.members,
+            "transactions": [t.to_dict() for t in self.transactions],
+        }
+
+
+# In-memory storage
+users: dict[str, User] = {}
+groups: dict[str, Group] = {}
+
+# File paths
+USERS_FILE = "users.json"
+GROUPS_FILE = "groups.json"
+
+
+# Helper functions for data persistence
+def load_data():
+    # global users, groups # TODO: IS THIS NECCESARY
+
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r") as f:
+            users_data = json.load(f)
+            users = {username: User(username) for username in users_data}
+
+    if os.path.exists(GROUPS_FILE):
+        with open(GROUPS_FILE, "r") as f:
+            groups_data = json.load(f)
+            # groups = {}
+            for group_dict in groups_data:
+                group = Group(group_dict["name"], group_dict["creator"])
+                group.members = group_dict["members"]
+
+                # Reconstruct transactions
+                for t_dict in group_dict.get("transactions", []):
+                    transaction = Transaction(
+                        t_dict["from_user"],
+                        t_dict["to_user"],
+                        t_dict["amount"],
+                        t_dict["group_name"],
+                    )
+                    group.transactions.append(transaction)
+
+                groups[group.name] = group
+
+
+def save_data():
+    with open(USERS_FILE, "w") as f:
+        json.dump([user for user in users.keys()], f)
+
+    with open(GROUPS_FILE, "w") as f:
+        json.dump([group.to_dict() for group in groups.values()], f)
+
+
+# API Endpoints
 @app.route("/login", methods=["POST"])
-def login_user():
-    data = request.json
-    try:
-        u = User(data=data)
-    except KeyError:
-        return jsonify_error("Missing required fields"), 400
-    except (ValueError, TypeError):
-        return jsonify_error("Invalid request"), 400
+def login():
+    data: dict = request.get_json()
+    username = data.get("username")
 
-    if u.good_to_store():
-        User.STORAGE.append(u)
-        u.store()
-    return u.to_json(), 200
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+
+    # If user exists, return success
+    if username in users:
+        return jsonify({"message": "Login successful", "username": username}), 200
+
+    # If user doesn't exist, create a new one
+    users[username] = User(username)
+    save_data()
+    return (
+        jsonify({"message": "User registered successfully", "username": username}),
+        201,
+    )
 
 
-# creator does not have to be a member but he was at some point
-@app.route("/groups/create", methods=["POST"])
+@app.route("/create_group", methods=["POST"])
 def create_group():
-    data = request.json
+    data: dict = request.get_json()
+    username = data.get("username")
+    group_name = data.get("group_name")
 
-    try:
-        g = Group(data=data)
-    except KeyError:
-        return jsonify_error("Missing required fields"), 400
-    except (ValueError, TypeError):
-        return jsonify_error("Invalid request"), 400
+    if not username or not group_name:
+        return jsonify({"error": "Username and group_name are required"}), 400
 
-    if not g.good_to_store():
-        return jsonify_error("Invalid group"), 400
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
 
-    Group.STORAGE.append(g)
-    g.store()
+    if group_name in groups:
+        return jsonify({"error": "Group already exists"}), 409
 
-    return g.to_json(), 201
+    group = Group(group_name, username)
+    groups[group_name] = group
+    save_data()
+
+    return (
+        jsonify({"message": "Group created successfully", "group": group.to_dict()}),
+        201,
+    )
 
 
-@app.route("/groups/join", methods=["POST"])
+@app.route("/join_group", methods=["POST"])
 def join_group():
-    data = request.json
-    if "group_name" not in data or "username" not in data:
-        return jsonify_error("Missing required fields"), 400
+    data: dict = request.get_json()
+    username = data.get("username")
+    group_name = data.get("group_name")
 
-    g = Group.get_group(data["group_name"])
-    if g is None:
-        return jsonify_error("Group does not exist"), 404
-    u = User.get_user(data["username"])
-    if u is None:
-        return jsonify_error("Cannot join because user does not exist"), 404
+    if not username or not group_name:
+        return jsonify({"error": "Username and group_name are required"}), 400
 
-    if u not in g.members:
-        g.members.append(u.username)
-    return g.to_json(), 200
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
+
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
+
+    group = groups[group_name]
+
+    if username in group.members:
+        return jsonify({"error": "User is already a member of this group"}), 409
+
+    group.members.append(username)
+    save_data()
+
+    return (
+        jsonify({"message": "User joined successfully", "group": group.to_dict()}),
+        200,
+    )
 
 
-# if creator leaves he is still the creator but not a member, so he can rejoin and keep the role
-@app.route("/groups/kick", methods=["PUT"])
+@app.route("/kick_user", methods=["POST"])
 def kick_user():
-    data = request.json
-    # username is the user we want to kick
-    # creator is the user does the kicking
-    if "username" not in data or "kicker" not in data or "group_name" not in data:
-        return jsonify_error("Missing required fields"), 400
+    data: dict = request.get_json()
+    username = data.get("username")  # User requesting the kick
+    target_username = data.get("target_username")  # User to be kicked
+    group_name = data.get("group_name")
 
-    g = Group.get_group(data["group_name"])
-    if g is None:
-        return jsonify_error("Group not found"), 404
+    if not username or not target_username or not group_name:
+        return (
+            jsonify(
+                {"error": "Username, target_username, and group_name are required"}
+            ),
+            400,
+        )
 
-    u = User.get_user(data["username"])
-    if u is None:
-        return jsonify_error("User not found"), 404
-    k = User.get_user(data["kicker"])
-    if k is None:
-        return jsonify_error("Kicker not found"), 404
+    if username not in users or target_username not in users:
+        return jsonify({"error": "User does not exist"}), 404
 
-    # Creator can kick anybody
-    # Member can kick himself
-    if k.username != g.creator and k.username != u.username:
-        return jsonify_error("Insuficient privladge"), 401
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
 
-    if k.username not in g.members or u.username not in g.members:
-        return jsonify_error("Not a member"), 404
+    group = groups[group_name]
 
-    g.members.pop(g.members.index(u.username))
-    return g.to_json(), 200
+    if target_username not in group.members:
+        return jsonify({"error": "Target user is not a member of this group"}), 404
+
+    if username != group.creator and username != target_username:
+        return jsonify({"error": "Only the group creator can kick other users"}), 403
+
+    group.members.remove(target_username)
+
+    # TODO: TEST THIS
+    # Remove transactions involving the kicked user
+    group.transactions = [
+        t
+        for t in group.transactions
+        if t.from_user != target_username and t.to_user != target_username
+    ]
+
+    save_data()
+
+    return (
+        jsonify({"message": "User kicked successfully", "group": group.to_dict()}),
+        200,
+    )
 
 
-@app.route("/users/groups", methods=["GET"])
+# TODO: MODIFY TO USE JSON BODY AS INPUT
+@app.route("/get_user_groups", methods=["GET"])
 def get_user_groups():
-    data = request.json
-    if "username" not in data:
-        return jsonify_error("Missing required fields"), 400
+    username = request.args.get("username")
 
-    u = User.get_user(data["username"])
-    if u is None:
-        return jsonify_error("User not found"), 404
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
 
-    response = []
-    for g in Group.STORAGE:
-        if u.username in g.members:
-            response.append(g.to_json)
-    return response, 200  # TODO: JSONIFY RESPONSE?
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
+
+    user_groups = [
+        group.to_dict() for group in groups.values() if username in group.members
+    ]
+
+    return jsonify({"groups": user_groups}), 200
 
 
-# POST: Add a new expense
-@app.route("/expenses", methods=["POST"])
+@app.route("/add_expense", methods=["POST"])
 def add_expense():
-    data = request.json  # Get JSON data from request
+    data: dict = request.get_json()
+    username = data.get("username")  # User who paid
+    group_name = data.get("group_name")
+    amount = data.get("amount")
+
+    if not username or not group_name or amount is None:
+        return jsonify({"error": "Username, group_name, and amount are required"}), 400
+
     try:
-        transaction = Transaction(data)
-    except KeyError:
-        return jsonify_error("Missing required fields"), 400
-    except (ValueError, TypeError):
-        return jsonify_error("Invalid request"), 400
+        amount = float(amount)
+        if amount <= 0:
+            return jsonify({"error": "Amount must be positive"}), 400
+    except ValueError:
+        return jsonify({"error": "Amount must be a number"}), 400
 
-    g = Group.get_group(transaction.group_name)
-    if g is None:
-        return jsonify_error("Group not found"), 404
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
 
-    if transaction.submitter not in g.members:
-        return jsonify_error(f"User is not a member of {data['group']}"), 400
-    if transaction.payer not in g.members:
-        return jsonify_error(f"Payer is not a member of {data['group']}"), 400
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
 
-    transaction.store()
-    Transaction.STORAGE.append(transaction)
-    return transaction.to_json(), 201  # 201 = Created
+    group = groups[group_name]
+
+    if username not in group.members:
+        return jsonify({"error": "User is not a member of this group"}), 403
+
+    # Calculate equal share for each member
+    num_members = len(group.members)
+    share_per_member = amount / num_members
+
+    # Create transactions for each member (except the payer)
+    for member in group.members:
+        if member != username:
+            transaction = Transaction(member, username, share_per_member, group_name)
+            group.transactions.append(transaction)
+
+    save_data()
+
+    return (
+        jsonify(
+            {
+                "message": "Expense added successfully",
+                "amount": amount,
+                "share_per_member": share_per_member,
+                "group": group.to_dict(),
+            }
+        ),
+        201,
+    )
+
+
+@app.route("/settle_up", methods=["POST"])
+def settle_up():
+    data: dict = request.get_json()
+    username = data.get("username")  # User who is settling up
+    to_user = data.get("to_user")  # User who is being paid
+    group_name = data.get("group_name")
+
+    if not username or not to_user or not group_name:
+        return jsonify({"error": "Username, to_user, and group_name are required"}), 400
+
+    if username not in users or to_user not in users:
+        return jsonify({"error": "User does not exist"}), 404
+
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
+
+    group = groups[group_name]
+
+    if username not in group.members or to_user not in group.members:
+        return jsonify({"error": "User is not a member of this group"}), 403
+
+    # Remove all transactions where the user owes money to the to_user
+    original_transaction_count = len(group.transactions)
+    group.transactions = [
+        t
+        for t in group.transactions
+        if not (t.from_user == username and t.to_user == to_user)
+    ]
+
+    settled_transaction_count = original_transaction_count - len(group.transactions)
+
+    save_data()
+
+    return (
+        jsonify(
+            {
+                "message": "Settled up successfully",
+                "transactions_settled": settled_transaction_count,
+                "group": group.to_dict(),
+            }
+        ),
+        200,
+    )
+
+
+# TODO TAKE FROM JSON
+@app.route("/get_debts", methods=["GET"])
+def get_debts():
+    username = request.args.get("username")
+    group_name = request.args.get("group_name")
+
+    if not username or not group_name:
+        return jsonify({"error": "Username and group_name are required"}), 400
+
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
+
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
+
+    group = groups[group_name]
+
+    if username not in group.members:
+        return jsonify({"error": "User is not a member of this group"}), 403
+
+    # Calculate debts per user
+    debts = {}
+    for transaction in group.transactions:
+        if transaction.from_user == username:
+            # User owes money to someone
+            if transaction.to_user not in debts:
+                debts[transaction.to_user] = 0
+            debts[transaction.to_user] += transaction.amount
+        elif transaction.to_user == username:
+            # Someone owes money to the user
+            if transaction.from_user not in debts:
+                debts[transaction.from_user] = 0
+            debts[transaction.from_user] -= transaction.amount
+
+    # Format the result
+    result = []
+    for user, amount in debts.items():
+        if amount > 0:
+            result.append({"username": user, "amount": amount, "status": "you owe"})
+        elif amount < 0:
+            result.append(
+                {"username": user, "amount": abs(amount), "status": "owes you"}
+            )
+
+    return (
+        jsonify({"username": username, "group_name": group_name, "debts": result}),
+        200,
+    )
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
-    User.load()
-    Group.load()
-    Transaction.load()
+    # Load data on startup
+    load_data()
+
+    app.run(debug=False)
