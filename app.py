@@ -216,10 +216,10 @@ def kick_user():
     )
 
 
-# TODO: MODIFY TO USE JSON BODY AS INPUT
 @app.route("/get_user_groups", methods=["GET"])
 def get_user_groups():
-    username = request.args.get("username")
+    data: dict = request.get_json()
+    username = data.get("username")
 
     if not username:
         return jsonify({"error": "Username is required"}), 400
@@ -332,11 +332,11 @@ def settle_up():
     )
 
 
-# TODO TAKE FROM JSON
 @app.route("/get_debts", methods=["GET"])
 def get_debts():
-    username = request.args.get("username")
-    group_name = request.args.get("group_name")
+    data: dict = request.get_json()
+    username = data.get("username")
+    group_name = data.get("group_name")
 
     if not username or not group_name:
         return jsonify({"error": "Username and group_name are required"}), 400
