@@ -15,18 +15,16 @@ class User:
 
 
 class Transaction:
-    def __init__(self, from_user: str, to_user: str, amount: float, group_name: str):
+    def __init__(self, from_user: str, to_user: str, amount: float):
         self.from_user = str(from_user)  # User who owes money
         self.to_user = str(to_user)  # User who is owed money
         self.amount = float(amount)
-        self.group_name = str(group_name)
 
     def to_dict(self):
         return {
             "from_user": self.from_user,
             "to_user": self.to_user,
             "amount": self.amount,
-            "group_name": self.group_name, # TODO: THIS IS NOT NECCESARY IF TRANSACTIONS ARE STORED IN GROUPS
         }
 
 
@@ -78,7 +76,6 @@ def load_data():
                         t_dict["from_user"],
                         t_dict["to_user"],
                         t_dict["amount"],
-                        t_dict["group_name"],
                     )
                     group.transactions.append(transaction)
 
@@ -269,7 +266,7 @@ def add_expense():
     # Create transactions for each member (except the payer)
     for member in group.members:
         if member != username:
-            transaction = Transaction(member, username, share_per_member, group_name)
+            transaction = Transaction(member, username, share_per_member)
             group.transactions.append(transaction)
 
     save_data()
