@@ -212,8 +212,8 @@ def kick_user():
         200,
     )
 
-
-@app.route("/get_user_groups", methods=["GET"])
+# changed to post because retrofit does not accept GET request with json bodies
+@app.route("/get_user_groups", methods=["POST"])
 def get_user_groups():
     data: dict = request.get_json()
     username = data.get("username")
