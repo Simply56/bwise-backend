@@ -26,7 +26,7 @@ class Transaction:
             "from_user": self.from_user,
             "to_user": self.to_user,
             "amount": self.amount,
-            "group_name": self.group_name,
+            "group_name": self.group_name, # TODO: THIS IS NOT NECCESARY IF TRANSACTIONS ARE STORED IN GROUPS
         }
 
 
