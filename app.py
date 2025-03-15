@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 # TODO: CREATE A DELETE GROUP API CALL
 
+
 # Data models
 class User:
     def __init__(self, username: str):
@@ -166,6 +167,31 @@ def join_group():
         jsonify({"message": "User joined successfully", "group": group.to_dict()}),
         200,
     )
+
+
+@app.route("delete_group", methods=["POST"])
+def delete_group():
+    data: dict = request.get_json()
+    username = data.get("username")
+    group_name = data.get("group_name")
+
+    if not username or not group_name:
+        return jsonify({"error": "Username and group_name are required"}), 400
+
+    if username not in users:
+        return jsonify({"error": "User does not exist"}), 404
+
+    if group_name not in groups:
+        return jsonify({"error": "Group does not exist"}), 404
+
+    group = groups[group_name]
+    if group.creator != username:
+        return jsonify({"error": "Only the group creator can delete groups"}), 403
+
+    groups.pop(group_name)
+    save_data()
+
+    return (jsonify({"message": "Group deleted succesfuly"}), 200)
 
 
 @app.route("/kick_user", methods=["POST"])
