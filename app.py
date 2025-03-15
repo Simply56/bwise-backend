@@ -118,7 +118,6 @@ def login():
 @app.route("/create_group", methods=["POST"])
 def create_group():
     data: dict = request.get_json()
-    print(data)
     username = data.get("username")
     group_name = data.get("group_name")
 
