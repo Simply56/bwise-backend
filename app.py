@@ -57,7 +57,7 @@ GROUPS_FILE = "groups.json"
 
 # Helper functions for data persistence
 def load_data():
-    # global users, groups # TODO: IS THIS NECCESARY
+    global users, groups # TODO: IS THIS NECCESARY
 
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r") as f:
