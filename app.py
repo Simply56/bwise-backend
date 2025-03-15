@@ -169,7 +169,7 @@ def join_group():
     )
 
 
-@app.route("delete_group", methods=["POST"])
+@app.route("/delete_group", methods=["POST"])
 def delete_group():
     data: dict = request.get_json()
     username = data.get("username")
