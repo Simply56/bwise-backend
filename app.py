@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 
+# TODO: CREATE A DELETE GROUP API CALL
 
 # Data models
 class User:
@@ -112,6 +113,7 @@ def login():
     )
 
 
+# TODO: MERGE JOIN AND CREATE GOUPS
 @app.route("/create_group", methods=["POST"])
 def create_group():
     data: dict = request.get_json()
@@ -211,6 +213,7 @@ def kick_user():
         jsonify({"message": "User kicked successfully", "group": group.to_dict()}),
         200,
     )
+
 
 # changed to post because retrofit does not accept GET request with json bodies
 @app.route("/get_user_groups", methods=["POST"])
