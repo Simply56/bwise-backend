@@ -122,12 +122,15 @@ def create_group():
     group_name = data.get("group_name")
 
     if not username or not group_name:
+        print("Username and group_name are required")
         return jsonify({"error": "Username and group_name are required"}), 400
 
     if username not in users:
+        print("User does not exist")
         return jsonify({"error": "User does not exist"}), 404
 
     if group_name in groups:
+        print("Group already exists")
         return jsonify({"error": "Group already exists"}), 409
 
     group = Group(group_name, username)
