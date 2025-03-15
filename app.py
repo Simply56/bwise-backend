@@ -86,10 +86,10 @@ def load_data():
 
 def save_data():
     with open(USERS_FILE, "w") as f:
-        json.dump([user for user in users.keys()], f)
+        json.dump([user for user in users.keys()], f, indent=4)
 
     with open(GROUPS_FILE, "w") as f:
-        json.dump([group.to_dict() for group in groups.values()], f)
+        json.dump([group.to_dict() for group in groups.values()], f, indent=4)
 
 
 # API Endpoints
