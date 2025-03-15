@@ -364,7 +364,7 @@ def settle_up():
     )
 
 
-@app.route("/get_debts", methods=["GET"])
+@app.route("/get_debts", methods=["POST"])
 def get_debts():
     data: dict = request.get_json()
     username = data.get("username")
