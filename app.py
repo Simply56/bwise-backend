@@ -4,7 +4,6 @@ import os
 
 app = Flask(__name__)
 
-# TODO: CREATE A DELETE GROUP API CALL
 # TODO: REJECT REQUESTS FIL MEMORY IS ALMOST FULL
 # TODO: CONSIDER CHANGING JOIN GROUP -> ADD MEMBER
 
@@ -119,7 +118,6 @@ def login():
     )
 
 
-# TODO: MERGE JOIN AND CREATE GOUPS
 @app.route("/create_group", methods=["POST"])
 def create_group():
     data: dict = request.get_json()
