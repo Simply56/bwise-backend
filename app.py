@@ -5,6 +5,8 @@ import os
 app = Flask(__name__)
 
 # TODO: CREATE A DELETE GROUP API CALL
+# TODO: LIMIT THE MAX LENGHT OF ALL INPUT BECAUSE INPUTS MORE THAN 1GB WILL CRASH THE VPS
+# TODO: CONSIDER CHANGING JOIN GROUP -> ADD MEMBER
 
 
 # Data models
@@ -57,7 +59,7 @@ GROUPS_FILE = "groups.json"
 
 # Helper functions for data persistence
 def load_data():
-    global users, groups # TODO: IS THIS NECCESARY
+    global users, groups
 
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r") as f:
@@ -92,7 +94,7 @@ def save_data():
         json.dump([group.to_dict() for group in groups.values()], f, indent=4)
 
 
-# API Endpoints
+# TODO: ADD PASSWORD AUTHENTIFICATION
 @app.route("/login", methods=["POST"])
 def login():
     data: dict = request.get_json()
