@@ -7,9 +7,13 @@ app = Flask(__name__)
 # TODO: REJECT REQUESTS IF MEMORY IS ALMOST FULL
 # TODO: CONSIDER CHANGING JOIN GROUP TO ADD MEMBER
 
+# TODO: ADD AN ADMIN ROLE
+#       user whose name start with admin will be considered an admin
+
 
 # Limit request size to 1MB (adjust as needed)
-app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1MB
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
+
 
 # Data models
 class User:
@@ -181,7 +185,7 @@ def join_group():
 @app.route("/delete_group", methods=["POST"])
 def delete_group():
     data: dict = request.get_json()
-    username = data.get("username")
+    username: str = data.get("username")
     group_name = data.get("group_name")
 
     if not username or not group_name:
@@ -193,9 +197,10 @@ def delete_group():
     if group_name not in groups:
         return jsonify({"error": "Group does not exist"}), 404
 
-    group = groups[group_name]
-    if group.creator != username:
-        return jsonify({"error": "Only the group creator can delete groups"}), 403
+    if not username.startswith("admin"):
+        group = groups[group_name]
+        if group.creator != username:
+            return jsonify({"error": "Only the group creator can delete groups"}), 403
 
     groups.pop(group_name)
     save_data()
@@ -206,7 +211,7 @@ def delete_group():
 @app.route("/kick_user", methods=["POST"])
 def kick_user():
     data: dict = request.get_json()
-    username = data.get("username")  # User requesting the kick
+    username: str = data.get("username")  # User requesting the kick
     target_username = data.get("target_username")  # User to be kicked
     group_name = data.get("group_name")
 
@@ -229,8 +234,12 @@ def kick_user():
     if target_username not in group.members:
         return jsonify({"error": "Target user is not a member of this group"}), 404
 
-    if username != group.creator and username != target_username:
-        return jsonify({"error": "Only the group creator can kick other users"}), 403
+    if not username.startswith("admin"):
+        if username != group.creator and username != target_username:
+            return (
+                jsonify({"error": "Only the group creator can kick other users"}),
+                403,
+            )
 
     group.members.remove(target_username)
 
