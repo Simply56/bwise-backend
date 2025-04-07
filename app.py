@@ -8,9 +8,6 @@ app = Flask(__name__)
 # TODO: REJECT REQUESTS IF MEMORY IS ALMOST FULL
 # TODO: CONSIDER CHANGING JOIN GROUP TO ADD MEMBER
 
-# TODO: ADD AN ADMIN ROLE
-#       user whose name start with admin will be considered an admin
-
 
 # Limit request size to 1MB (adjust as needed)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
