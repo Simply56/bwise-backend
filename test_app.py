@@ -343,7 +343,6 @@ def test_add_expense_nonexistent_group(client):
             "username": "payer",
             "group_name": "nonexistent_group",
             "amount": 100,
-            "description": "Dinner",
         },
         content_type="application/json",
     )
@@ -370,7 +369,6 @@ def test_add_expense_nonexistent_user(client):
             "username": "nonexistent_user",
             "group_name": "test_group",
             "amount": 100,
-            "description": "Dinner",
         },
         content_type="application/json",
     )
@@ -402,7 +400,6 @@ def test_add_expense_not_member(client):
             "username": "nonmember",
             "group_name": "test_group",
             "amount": 100,
-            "description": "Dinner",
         },
         content_type="application/json",
     )
@@ -439,7 +436,6 @@ def test_settle_up(client):
             "username": "payer",
             "group_name": "settle_group",
             "amount": 100,
-            "description": "Dinner",
         },
         content_type="application/json",
     )
@@ -468,3 +464,92 @@ def test_settle_up(client):
     # Verify that there are no debts
     debts = data["debts"]
     assert len(debts) == 0
+
+
+def test_kick_user(client):
+
+    # Create users
+    client.post("/login", json={"username": "payer"}, content_type="application/json")
+    client.post("/login", json={"username": "debtor"}, content_type="application/json")
+
+    # Create a group
+    client.post(
+        "/create_group",
+        json={"username": "payer", "group_name": "kick_group"},
+        content_type="application/json",
+    )
+
+    # Add a member to the group
+    client.post(
+        "/join_group",
+        json={"username": "debtor", "group_name": "kick_group"},
+        content_type="application/json",
+    )
+
+    # Add an expense
+    client.post(
+        "/add_expense",
+        json={
+            "username": "payer",
+            "group_name": "kick_group",
+            "amount": 100,
+        },
+        content_type="application/json",
+    )
+
+    response = client.post(
+        "/kick_user",
+        json={
+            "username": "debtor",
+            "group_name": "kick_group",
+            "target_username": "payer",
+        },
+    )
+    assert response.status_code == 403
+
+    response = client.post(
+        "/kick_user",
+        json={
+            "username": "payer",
+            "group_name": "kick_group",
+            "target_username": "debtor",
+        },
+    )
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data["group"]) != 0
+    assert data["group"]["name"] == "kick_group"
+    assert len(data["group"]["transactions"]) == 0
+    assert "debtor" not in list(data["group"]["members"])
+
+    # Check that the debt is settled
+    response = client.post(
+        "/get_debts",
+        json={"username": "payer", "group_name": "kick_group"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+
+    # Verify that there are no debts
+    debts = data["debts"]
+    assert len(debts) == 0
+
+
+    # the last user kicks himself out
+    response = client.post(
+        "/kick_user",
+        json={
+            "username": "payer",
+            "group_name": "kick_group",
+            "target_username": "payer",
+        },
+        content_type="application/json",
+    )
+
+    data = json.loads(response.data)
+
+    assert response.status_code == 200
+    assert "payer" not in list(data["group"]["members"])
