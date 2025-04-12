@@ -14,7 +14,7 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 
 # Data models
-class User:
+class User: # TODO: USER IS ONLY USED WHEN IT'S STORED
     def __init__(self, username: str):
         self.username = str(username)
 
