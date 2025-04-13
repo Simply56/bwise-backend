@@ -14,9 +14,8 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 def jsonify(d):
-    x = flask.jsonify(d)
-    print(x)
-    return x
+    print(d)
+    return flask.jsonify(d)
     
 
 # Data models
