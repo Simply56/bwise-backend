@@ -267,7 +267,7 @@ def get_user_groups():
         group.to_dict() for group in groups.values() if username in group.members
     ]
 
-    return jsonify({"groups": user_groups}), 200
+    return jsonify({"message": "Groups retrieved", "groups": user_groups}), 200
 
 
 @app.route("/add_expense", methods=["POST"])
@@ -418,7 +418,7 @@ def get_debts():
             )
 
     return (
-        jsonify({"username": username, "group_name": group_name, "debts": result}),
+        jsonify({"message": "Got debts", "username": username, "group_name": group_name, "debts": result}),
         200,
     )
 

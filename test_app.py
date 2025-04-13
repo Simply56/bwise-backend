@@ -51,8 +51,8 @@ def test_login_missing_username(client):
     response = client.post("/login", json={}, content_type="application/json")
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "Username is required"
+    assert "message" in data
+    assert data["message"] == "Username is required"
 
 
 def test_create_group(client):
@@ -83,8 +83,8 @@ def test_create_group_missing_params(client):
     )
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "Username and group_name are required"
+    assert "message" in data
+    assert data["message"] == "Username and group_name are required"
 
 
 def test_create_group_nonexistent_user(client):
@@ -95,8 +95,8 @@ def test_create_group_nonexistent_user(client):
     )
     assert response.status_code == 404
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "User does not exist"
+    assert "message" in data
+    assert data["message"] == "User does not exist"
 
 
 def test_join_group(client):
@@ -144,8 +144,8 @@ def test_join_group_already_member(client):
     )
     assert response.status_code == 409
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "User is already a member of this group"
+    assert "message" in data
+    assert data["message"] == "User is already a member of this group"
 
 
 def test_delete_group(client):
@@ -177,7 +177,7 @@ def test_delete_group(client):
     )
     assert response.status_code == 404
     data = json.loads(response.data)
-    assert data["error"] == "Group does not exist"
+    assert data["message"] == "Group does not exist"
 
 
 def test_delete_group_not_creator(client):
@@ -209,8 +209,8 @@ def test_delete_group_not_creator(client):
     )
     assert response.status_code == 403
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "Only the group creator can delete groups"
+    assert "message" in data
+    assert data["message"] == "Only the group creator can delete groups"
 
 
 def test_admin_delete_group(client):
@@ -349,8 +349,8 @@ def test_add_expense_nonexistent_group(client):
 
     assert response.status_code == 404
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "Group does not exist"
+    assert "message" in data
+    assert data["message"] == "Group does not exist"
 
 
 def test_add_expense_nonexistent_user(client):
@@ -375,8 +375,8 @@ def test_add_expense_nonexistent_user(client):
 
     assert response.status_code == 404
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "User does not exist"
+    assert "message" in data
+    assert data["message"] == "User does not exist"
 
 
 def test_add_expense_not_member(client):
@@ -406,8 +406,8 @@ def test_add_expense_not_member(client):
 
     assert response.status_code == 403
     data = json.loads(response.data)
-    assert "error" in data
-    assert data["error"] == "User is not a member of this group"
+    assert "message" in data
+    assert data["message"] == "User is not a member of this group"
 
 
 def test_settle_up(client):
