@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+import flask
+from flask import Flask, request
 from waitress import serve
 import json
 import os
@@ -12,6 +13,11 @@ app = Flask(__name__)
 # Limit request size to 1MB (adjust as needed)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
+def jsonify(d):
+    x = flask.jsonify(d)
+    print(x)
+    return x
+    
 
 # Data models
 class User:  # TODO: USER IS ONLY USED WHEN IT'S STORED
