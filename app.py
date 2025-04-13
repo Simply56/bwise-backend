@@ -189,7 +189,7 @@ def delete_group():
         return jsonify({"message": "Username and group_name are required"}), 400
 
     if username not in users:
-        return jsonify({"message": "User does not exist"}), 404
+        return jsonify({"message": f"User {username} does not exist"}), 404
 
     if group_name not in groups:
         return jsonify({"message": "Group does not exist"}), 404
