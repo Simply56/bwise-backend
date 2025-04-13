@@ -105,7 +105,7 @@ def login():
     username = data.get("username")
 
     if not username:
-        return jsonify({"error": "Username is required"}), 400
+        return jsonify({"message": "Username is required"}), 400
 
     # If user exists, return success
     if username in users:
@@ -127,13 +127,13 @@ def create_group():
     group_name = data.get("group_name")
 
     if not username or not group_name:
-        return jsonify({"error": "Username and group_name are required"}), 400
+        return jsonify({"message": "Username and group_name are required"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name in groups:
-        return jsonify({"error": "Group already exists"}), 409
+        return jsonify({"message": "Group already exists"}), 409
 
     group = Group(group_name, username)
     groups[group_name] = group
@@ -152,18 +152,18 @@ def join_group():
     group_name = data.get("group_name")
 
     if not username or not group_name:
-        return jsonify({"error": "Username and group_name are required"}), 400
+        return jsonify({"message": "Username and group_name are required"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     group = groups[group_name]
 
     if username in group.members:
-        return jsonify({"error": "User is already a member of this group"}), 409
+        return jsonify({"message": "User is already a member of this group"}), 409
 
     group.members.append(username)
     save_data()
@@ -181,18 +181,18 @@ def delete_group():
     group_name = data.get("group_name")
 
     if not username or not group_name:
-        return jsonify({"error": "Username and group_name are required"}), 400
+        return jsonify({"message": "Username and group_name are required"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     if not username.startswith("admin"):
         group = groups[group_name]
         if group.creator != username:
-            return jsonify({"error": "Only the group creator can delete groups"}), 403
+            return jsonify({"message": "Only the group creator can delete groups"}), 403
 
     groups.pop(group_name)
     save_data()
@@ -210,26 +210,26 @@ def kick_user():
     if not username or not target_username or not group_name:
         return (
             jsonify(
-                {"error": "Username, target_username, and group_name are required"}
+                {"message": "Username, target_username, and group_name are required"}
             ),
             400,
         )
 
     if username not in users or target_username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     group = groups[group_name]
 
     if target_username not in group.members:
-        return jsonify({"error": "Target user is not a member of this group"}), 404
+        return jsonify({"message": "Target user is not a member of this group"}), 404
 
     if not username.startswith("admin"):
         if username != group.creator and username != target_username:
             return (
-                jsonify({"error": "Only the group creator can kick other users"}),
+                jsonify({"message": "Only the group creator can kick other users"}),
                 403,
             )
 
@@ -258,10 +258,10 @@ def get_user_groups():
     username = data.get("username")
 
     if not username:
-        return jsonify({"error": "Username is required"}), 400
+        return jsonify({"message": "Username is required"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     user_groups = [
         group.to_dict() for group in groups.values() if username in group.members
@@ -278,25 +278,25 @@ def add_expense():
     amount = data.get("amount")
 
     if not username or not group_name or amount is None:
-        return jsonify({"error": "Username, group_name, and amount are required"}), 400
+        return jsonify({"message": "Username, group_name, and amount are required"}), 400
 
     try:
         amount = float(amount)
         if amount <= 0:
-            return jsonify({"error": "Amount must be positive"}), 400
+            return jsonify({"message": "Amount must be positive"}), 400
     except ValueError:
-        return jsonify({"error": "Amount must be a number"}), 400
+        return jsonify({"message": "Amount must be a number"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     group = groups[group_name]
 
     if username not in group.members:
-        return jsonify({"error": "User is not a member of this group"}), 403
+        return jsonify({"message": "User is not a member of this group"}), 403
 
     # Calculate equal share for each member
     num_members = len(group.members)
@@ -331,18 +331,18 @@ def settle_up():
     group_name = data.get("group_name")
 
     if not username or not to_user or not group_name:
-        return jsonify({"error": "Username, to_user, and group_name are required"}), 400
+        return jsonify({"message": "Username, to_user, and group_name are required"}), 400
 
     if username not in users or to_user not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     group = groups[group_name]
 
     if username not in group.members or to_user not in group.members:
-        return jsonify({"error": "User is not a member of this group"}), 403
+        return jsonify({"message": "User is not a member of this group"}), 403
 
     # Remove all transactions between the two members
     original_transaction_count = len(group.transactions)
@@ -380,18 +380,18 @@ def get_debts():
     group_name = data.get("group_name")
 
     if not username or not group_name:
-        return jsonify({"error": "Username and group_name are required"}), 400
+        return jsonify({"message": "Username and group_name are required"}), 400
 
     if username not in users:
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({"message": "User does not exist"}), 404
 
     if group_name not in groups:
-        return jsonify({"error": "Group does not exist"}), 404
+        return jsonify({"message": "Group does not exist"}), 404
 
     group = groups[group_name]
 
     if username not in group.members:
-        return jsonify({"error": "User is not a member of this group"}), 403
+        return jsonify({"message": "User is not a member of this group"}), 403
 
     # Calculate debts per user
     debts = {}
