@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-# from waitress import serve
+from waitress import serve
 import json
 import os
 
@@ -419,7 +419,6 @@ def get_debts():
 
 
 if __name__ == "__main__":
-    # Load data on startup
     load_data()
-    app.run(host="0.0.0.0", port=5000)
-    # serve(app, host="0.0.0.0", port=5000)
+    # app.run(host="0.0.0.0", port=5000)
+    serve(app, host="0.0.0.0", port=5000)
