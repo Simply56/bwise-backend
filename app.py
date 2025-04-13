@@ -14,7 +14,7 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 
 # Data models
-class User: # TODO: USER IS ONLY USED WHEN IT'S STORED
+class User:  # TODO: USER IS ONLY USED WHEN IT'S STORED
     def __init__(self, username: str):
         self.username = str(username)
 
@@ -243,7 +243,7 @@ def kick_user():
         if t.from_user != target_username and t.to_user != target_username
     ]
 
-#save_data()
+    # save_data()
 
     return (
         jsonify({"message": "User kicked successfully", "group": group.to_dict()}),
@@ -344,12 +344,17 @@ def settle_up():
     if username not in group.members or to_user not in group.members:
         return jsonify({"error": "User is not a member of this group"}), 403
 
-    # Remove all transactions where the user owes money to the to_user
+    # Remove all transactions between the two members
     original_transaction_count = len(group.transactions)
     group.transactions = [
         t
         for t in group.transactions
-        if not (t.from_user == username and t.to_user == to_user)
+        if (
+            t.from_user != username
+            and t.from_user != to_user
+            and t.to_user != to_user
+            and t.from_user != to_user
+        )
     ]
 
     settled_transaction_count = original_transaction_count - len(group.transactions)
