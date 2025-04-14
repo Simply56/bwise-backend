@@ -19,9 +19,11 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 
-def jsonify(d):
-    print(d)
-    return flask.jsonify(d)
+# wrapper so that we have a lot of log with little code
+def jsonify(*args, **kwargs):
+    print(args)
+    print(kwargs)
+    return flask.jsonify(*args, **kwargs)
 
 
 # Data models
@@ -111,8 +113,8 @@ def save_data():
 
 
 def writer_thread():
-    while True: # not a busy wait
-        item = write_queue.get() # this blocks and sleeps the thread
+    while True:  # not a busy wait
+        item: tuple[str, str] = write_queue.get()  # this blocks and sleeps the thread
         if item is None:
             break
 
@@ -260,7 +262,6 @@ def kick_user():
 
     group.members.remove(target_username)
 
-    # TODO: TEST THIS
     # Remove transactions involving the kicked user
     group.transactions = [
         t
