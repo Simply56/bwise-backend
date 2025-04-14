@@ -23,6 +23,7 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 def jsonify(*args, **kwargs):
     print(args)
     print(kwargs)
+    print()
     return flask.jsonify(*args, **kwargs)
 
 
