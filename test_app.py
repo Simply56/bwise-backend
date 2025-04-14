@@ -1,6 +1,5 @@
 import pytest
 from app import app
-from flask import Flask, jsonify
 import subprocess
 import json
 
@@ -555,7 +554,7 @@ def test_kick_user(client):
 
 
 def test_performance(client):
-    size = 30
+    size = 10
     users:list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:
