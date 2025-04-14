@@ -552,9 +552,9 @@ def test_kick_user(client):
     assert response.status_code == 200
     assert "payer" not in list(data["group"]["members"])
 
-
+@pytest.mark.report_tracemalloc
 def test_performance(client):
-    size = 10
+    size = 30
     users:list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:
