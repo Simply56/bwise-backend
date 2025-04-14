@@ -111,8 +111,8 @@ def save_data():
 
 
 def writer_thread():
-    while True: # to a busy wait
-        item = write_queue.get() # this blocks the thread
+    while True: # not a busy wait
+        item = write_queue.get() # this blocks and sleeps the thread
         if item is None:
             break
 
