@@ -537,7 +537,6 @@ def test_kick_user(client):
     debts = data["debts"]
     assert len(debts) == 0
 
-
     # the last user kicks himself out
     response = client.post(
         "/kick_user",
@@ -553,3 +552,40 @@ def test_kick_user(client):
 
     assert response.status_code == 200
     assert "payer" not in list(data["group"]["members"])
+
+
+def test_performance(client):
+    size = 30
+    users:list[str] = [str(i) for i in range(size)]
+    # Create users
+    for user in users:
+        client.post("/login", json={"username": user}, content_type="application/json")
+
+    for creator in users:
+        # Create a group
+        group_name = creator + "'s group"
+        client.post(
+            "/create_group",
+            json={"username": creator, "group_name": group_name},
+            content_type="application/json",
+        )
+        for member in users:
+            # Add a members to the group each group
+            client.post(
+                "/join_group",
+                json={"username": member, "group_name": group_name},
+                content_type="application/json",
+            )
+
+    for user in users:
+        group_name = user + "'s group"
+        # Add an expense
+        client.post(
+            "/add_expense",
+            json={
+                "username": user,
+                "group_name": group_name,
+                "amount": 100,
+            },
+            content_type="application/json",
+        )

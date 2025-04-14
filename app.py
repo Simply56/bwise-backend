@@ -3,6 +3,11 @@ from flask import Flask, request
 from waitress import serve
 import json
 import os
+from queue import Queue
+from threading import Thread
+import signal
+import sys
+
 
 app = Flask(__name__)
 
@@ -13,10 +18,11 @@ app = Flask(__name__)
 # Limit request size to 1MB (adjust as needed)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
+
 def jsonify(d):
     print(d)
     return flask.jsonify(d)
-    
+
 
 # Data models
 class User:  # TODO: USER IS ONLY USED WHEN IT'S STORED
@@ -57,6 +63,7 @@ class Group:
         }
 
 
+write_queue: Queue[tuple[str, str]] = Queue()
 # In-memory storage
 users: dict[str, User] = {}
 groups: dict[str, Group] = {}
@@ -96,11 +103,24 @@ def load_data():
 
 
 def save_data():
-    with open(USERS_FILE, "w") as f:
-        json.dump([user for user in users.keys()], f, indent=4)
+    users_json: str = json.dumps([user for user in users.keys()])
 
-    with open(GROUPS_FILE, "w") as f:
-        json.dump([group.to_dict() for group in groups.values()], f, indent=4)
+    groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
+    write_queue.put((USERS_FILE, users_json))
+    write_queue.put((GROUPS_FILE, groups_json))
+
+
+def writer_thread():
+    while True: # to a busy wait
+        item = write_queue.get() # this blocks the thread
+        if item is None:
+            break
+
+        filename, json_data = item
+        with open(filename, "w") as f:
+            f.write(json_data)
+
+        write_queue.task_done()
 
 
 # TODO: ADD PASSWORD AUTHENTIFICATION
@@ -283,7 +303,10 @@ def add_expense():
     amount = data.get("amount")
 
     if not username or not group_name or amount is None:
-        return jsonify({"message": "Username, group_name, and amount are required"}), 400
+        return (
+            jsonify({"message": "Username, group_name, and amount are required"}),
+            400,
+        )
 
     try:
         amount = float(amount)
@@ -336,7 +359,10 @@ def settle_up():
     group_name = data.get("group_name")
 
     if not username or not to_user or not group_name:
-        return jsonify({"message": "Username, to_user, and group_name are required"}), 400
+        return (
+            jsonify({"message": "Username, to_user, and group_name are required"}),
+            400,
+        )
 
     if username not in users or to_user not in users:
         return jsonify({"message": "User does not exist"}), 404
@@ -423,12 +449,39 @@ def get_debts():
             )
 
     return (
-        jsonify({"message": "Got debts", "username": username, "group_name": group_name, "debts": result}),
+        jsonify(
+            {
+                "message": "Got debts",
+                "username": username,
+                "group_name": group_name,
+                "debts": result,
+            }
+        ),
         200,
     )
 
 
+def shutdown_handler(signum, frame):
+    print(f"Received signal {signum}, shutting down gracefully...")
+
+    # Signal the writer thread to stop
+    write_queue.put(None)
+
+    # Wait for all queued writes to finish
+    thread.join()
+
+    print("Writer thread finished. Exiting.")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
     load_data()
+    thread = Thread(target=writer_thread)
+    thread.start()
+
     app.run(host="0.0.0.0", port=5000)
     # serve(app, host="0.0.0.0", port=5000)
+
+    # Register handlers for SIGINT (Ctrl+C) and SIGTERM (e.g., pkill)
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
