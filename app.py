@@ -6,7 +6,6 @@ import os
 from queue import Queue
 from threading import Thread
 import signal
-import sys
 
 
 app = Flask(__name__)
@@ -506,7 +505,7 @@ def shutdown_handler(signum, frame):
     thread.join()
 
     print("Writer thread finished. Exiting.")
-    sys.exit(0)
+    exit(0)
 
 
 if __name__ == "__main__":
