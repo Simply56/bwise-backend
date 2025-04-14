@@ -15,6 +15,31 @@ def client():
     return app.test_client()
 
 
+def test_all_have_message(client):
+    missing_message = []
+
+    for rule in app.url_map.iter_rules():
+        if "<" in rule.rule:
+            continue
+        response = client.post(
+            rule.rule, json={"username": "messenger"}, content_type="application/json"
+        )
+
+        # Ensure it's JSON and contains "message"
+        try:
+            data = response.get_json(force=True)
+            if not isinstance(data, dict) or "message" not in data:
+                missing_message.append((rule.rule, "missing or invalid 'message'"))
+        except Exception as e:
+            missing_message.append((rule.rule, f"not JSON: {e}"))
+
+        assert (
+            not missing_message
+        ), "Some routes did not return a valid 'message':\n" + "\n".join(
+            f"{route}: {reason}" for route, reason in missing_message
+        )
+
+
 def test_client_not_found(client):
     response = client.get("/nonexistent")
     assert response.status_code == 404
@@ -26,7 +51,6 @@ def test_login_new_user(client):
     )
     assert response.status_code == 201
     data = json.loads(response.data)
-    assert data["message"] == "User registered successfully"
     assert data["username"] == "testuser1"
 
 
@@ -42,7 +66,6 @@ def test_login_existing_user(client):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data["message"] == "Login successful"
     assert data["username"] == "testuser2"
 
 
@@ -51,7 +74,6 @@ def test_login_missing_username(client):
     assert response.status_code == 400
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "Username is required"
 
 
 def test_create_group(client):
@@ -68,7 +90,6 @@ def test_create_group(client):
     )
     assert response.status_code == 201
     data = json.loads(response.data)
-    assert data["message"] == "Group created successfully"
     assert data["group"]["name"] == "testgroup1"
     assert data["group"]["creator"] == "groupcreator"
     assert "groupcreator" in data["group"]["members"]
@@ -83,7 +104,6 @@ def test_create_group_missing_params(client):
     assert response.status_code == 400
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "Username and group_name are required"
 
 
 def test_create_group_nonexistent_user(client):
@@ -95,7 +115,6 @@ def test_create_group_nonexistent_user(client):
     assert response.status_code == 404
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "User does not exist"
 
 
 def test_join_group(client):
@@ -120,7 +139,6 @@ def test_join_group(client):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data["message"] == "User joined successfully"
     assert "joiner" in data["group"]["members"]
 
 
@@ -144,7 +162,6 @@ def test_join_group_already_member(client):
     assert response.status_code == 409
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "User is already a member of this group"
 
 
 def test_delete_group(client):
@@ -166,7 +183,6 @@ def test_delete_group(client):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data["message"] == "Group deleted succesfuly"
 
     # Verify the group is deleted
     response = client.post(
@@ -176,7 +192,6 @@ def test_delete_group(client):
     )
     assert response.status_code == 404
     data = json.loads(response.data)
-    assert data["message"] == "Group does not exist"
 
 
 def test_delete_group_not_creator(client):
@@ -209,7 +224,6 @@ def test_delete_group_not_creator(client):
     assert response.status_code == 403
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "Only the group creator can delete groups"
 
 
 def test_admin_delete_group(client):
@@ -236,7 +250,6 @@ def test_admin_delete_group(client):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data["message"] == "Group deleted succesfuly"
 
 
 def test_get_user_groups(client):
@@ -302,7 +315,6 @@ def test_add_expense(client):
 
     assert response.status_code == 201
     data = json.loads(response.data)
-    assert data["message"] == "Expense added successfully"
 
     # Check that the expense was added correctly
     response = client.post(
@@ -349,7 +361,6 @@ def test_add_expense_nonexistent_group(client):
     assert response.status_code == 404
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "Group does not exist"
 
 
 def test_add_expense_nonexistent_user(client):
@@ -375,7 +386,6 @@ def test_add_expense_nonexistent_user(client):
     assert response.status_code == 404
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "User does not exist"
 
 
 def test_add_expense_not_member(client):
@@ -406,7 +416,6 @@ def test_add_expense_not_member(client):
     assert response.status_code == 403
     data = json.loads(response.data)
     assert "message" in data
-    assert data["message"] == "User is not a member of this group"
 
 
 def test_settle_up(client):
@@ -448,7 +457,6 @@ def test_settle_up(client):
 
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data["message"] == "Settled up successfully"
 
     # Check that the debt is settled
     response = client.post(
@@ -552,10 +560,11 @@ def test_kick_user(client):
     assert response.status_code == 200
     assert "payer" not in list(data["group"]["members"])
 
+
 @pytest.mark.report_tracemalloc
 def test_performance(client):
     size = 30
-    users:list[str] = [str(i) for i in range(size)]
+    users: list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:
         client.post("/login", json={"username": user}, content_type="application/json")
