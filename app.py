@@ -10,6 +10,7 @@ import sys
 
 
 app = Flask(__name__)
+DEBUG: bool = True
 
 # TODO: REJECT REQUESTS IF MEMORY IS ALMOST FULL
 # TODO: CONSIDER CHANGING JOIN GROUP TO ADD MEMBER
@@ -21,9 +22,10 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 # wrapper so that we have a lot of log with little code
 def jsonify(*args, **kwargs):
-    # print(args)
-    # print(kwargs)
-    # print()
+    if DEBUG:
+        print(args)
+        print(kwargs)
+        print()
     return flask.jsonify(*args, **kwargs)
 
 
@@ -508,12 +510,14 @@ def shutdown_handler(signum, frame):
 
 
 if __name__ == "__main__":
-    load_data()
+
     thread = Thread(target=writer_thread)
     thread.start()
 
-    app.run(host="0.0.0.0", port=5000)
-    # serve(app, host="0.0.0.0", port=5000)
+    if DEBUG:
+        app.run(host="0.0.0.0", port=5000)
+    else:
+        serve(app, host="0.0.0.0", port=5000)
 
     # Register handlers for SIGINT (Ctrl+C) and SIGTERM (e.g., pkill)
     signal.signal(signal.SIGINT, shutdown_handler)
