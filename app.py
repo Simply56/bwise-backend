@@ -12,7 +12,6 @@ app = Flask(__name__)
 DEBUG: bool = True
 
 # TODO: REJECT REQUESTS IF MEMORY IS ALMOST FULL
-# TODO: CONSIDER CHANGING JOIN GROUP TO ADD MEMBER
 
 
 # Limit request size to 500MB (adjust as needed)
@@ -111,7 +110,7 @@ def save_data():
 
     groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
     write_queue.put((GROUPS_FILE, groups_json))
-    
+
     # with open(USERS_FILE, "w") as f:
     #     f.write(users_json)
 
