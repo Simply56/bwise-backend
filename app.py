@@ -358,11 +358,10 @@ def kick_user():
     # kicked user settles all of his debts
     for member_name in group.members:
         settle_up_internal(username, group, member_name)
-    save_data()    
-
 
     group.members.remove(target_username)
 
+    save_data()    
     return (
         jsonify(
             {
