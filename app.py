@@ -261,6 +261,59 @@ def delete_group():
     return (jsonify({"message": f"Group {group_name} deleted succesfuly"}), 200)
 
 
+@app.route("/settle_up", methods=["POST"])
+def settle_up():
+    data: dict = request.get_json()
+    username = data.get("username")  # User who is settling up
+    to_user = data.get("to_user")  # User who is being paid
+    group_name = data.get("group_name")
+
+    if not username or not to_user or not group_name:
+        return (
+            jsonify({"message": "Username, to_user, and group_name are required"}),
+            400,
+        )
+
+    if username not in users or to_user not in users:
+        return jsonify({"message": f"User {username} does not exist"}), 404
+
+    if group_name not in groups:
+        return jsonify({"message": f"Group {group_name} does not exist"}), 404
+
+    group = groups[group_name]
+
+    if username not in group.members or to_user not in group.members:
+        return (
+            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            403,
+        )
+
+    # Remove all transactions between the two members
+    original_transaction_count = len(group.transactions)
+    updated_transactions: list[Transaction] = []
+
+    for trn in group.transactions:
+        if trn.from_user == username or trn.to_user == username:
+            continue
+        updated_transactions.append(trn)
+
+    group.transactions = updated_transactions
+    settled_transaction_count = original_transaction_count - len(group.transactions)
+
+    save_data()
+
+    return (
+        jsonify(
+            {
+                "message": "Settled up successfully",
+                "transactions_settled": settled_transaction_count,
+                "group": group.to_dict(),
+            }
+        ),
+        200,
+    )
+
+
 @app.route("/kick_user", methods=["POST"])
 def kick_user():
     data: dict = request.get_json()
@@ -300,6 +353,7 @@ def kick_user():
 
     group.members.remove(target_username)
 
+    # TODO: CALL SETTLE DEBTS ON THE KICKED USER
     # Remove transactions involving the kicked user
     group.transactions = [
         t
@@ -397,58 +451,6 @@ def add_expense():
         201,
     )
 
-
-@app.route("/settle_up", methods=["POST"])
-def settle_up():
-    data: dict = request.get_json()
-    username = data.get("username")  # User who is settling up
-    to_user = data.get("to_user")  # User who is being paid
-    group_name = data.get("group_name")
-
-    if not username or not to_user or not group_name:
-        return (
-            jsonify({"message": "Username, to_user, and group_name are required"}),
-            400,
-        )
-
-    if username not in users or to_user not in users:
-        return jsonify({"message": f"User {username} does not exist"}), 404
-
-    if group_name not in groups:
-        return jsonify({"message": f"Group {group_name} does not exist"}), 404
-
-    group = groups[group_name]
-
-    if username not in group.members or to_user not in group.members:
-        return (
-            jsonify({"message": f"User {username} is not a member of {group.name}"}),
-            403,
-        )
-
-    # Remove all transactions between the two members
-    original_transaction_count = len(group.transactions)
-    updated_transactions: list[Transaction] = []
-
-    for trn in group.transactions:
-        if trn.from_user == username or trn.to_user == username:
-            continue
-        updated_transactions.append(trn)
-
-    group.transactions = updated_transactions
-    settled_transaction_count = original_transaction_count - len(group.transactions)
-
-    save_data()
-
-    return (
-        jsonify(
-            {
-                "message": "Settled up successfully",
-                "transactions_settled": settled_transaction_count,
-                "group": group.to_dict(),
-            }
-        ),
-        200,
-    )
 
 
 @app.route("/get_debts", methods=["POST"])
