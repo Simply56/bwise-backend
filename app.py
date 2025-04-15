@@ -118,7 +118,6 @@ def save_data():
     #     f.write(groups_json)
 
 
-
 def writer_thread():
     while True:  # not a busy wait
         item: tuple[str, str] = write_queue.get()  # this blocks and sleeps the thread
@@ -261,6 +260,23 @@ def delete_group():
     return (jsonify({"message": f"Group {group_name} deleted succesfuly"}), 200)
 
 
+def settle_up_internal(username1: str, group: Group, username2: str):
+    # Remove all transactions between the two members
+    updated_transactions: list[Transaction] = []
+
+    for trn in group.transactions:
+        if trn.from_user == username1 and trn.to_user == username2:
+            continue
+        if trn.from_user == username2 and trn.to_user == username1:
+            continue
+
+        updated_transactions.append(trn)
+
+    group.transactions = updated_transactions
+
+    save_data()
+
+
 @app.route("/settle_up", methods=["POST"])
 def settle_up():
     data: dict = request.get_json()
@@ -288,20 +304,9 @@ def settle_up():
             403,
         )
 
-    # Remove all transactions between the two members
     original_transaction_count = len(group.transactions)
-    updated_transactions: list[Transaction] = []
-
-    for trn in group.transactions:
-        if trn.from_user == username or trn.to_user == username:
-            continue
-        updated_transactions.append(trn)
-
-    group.transactions = updated_transactions
+    settle_up_internal(username, group, to_user)
     settled_transaction_count = original_transaction_count - len(group.transactions)
-
-    save_data()
-
     return (
         jsonify(
             {
@@ -450,7 +455,6 @@ def add_expense():
         ),
         201,
     )
-
 
 
 @app.route("/get_debts", methods=["POST"])
