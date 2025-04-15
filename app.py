@@ -107,16 +107,17 @@ def load_data():
 
 def save_data():
     users_json: str = json.dumps([user for user in users.keys()])
-    groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
+    write_queue.put((USERS_FILE, users_json))
 
+    groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
+    write_queue.put((GROUPS_FILE, groups_json))
+    
     # with open(USERS_FILE, "w") as f:
     #     f.write(users_json)
 
     # with open(GROUPS_FILE, "w") as f:
     #     f.write(groups_json)
 
-    write_queue.put((USERS_FILE, users_json))
-    write_queue.put((GROUPS_FILE, groups_json))
 
 
 def writer_thread():
