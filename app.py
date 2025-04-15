@@ -15,8 +15,8 @@ DEBUG: bool = True
 # TODO: CONSIDER CHANGING JOIN GROUP TO ADD MEMBER
 
 
-# Limit request size to 1MB (adjust as needed)
-app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
+# Limit request size to 500MB (adjust as needed)
+app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 
 # wrapper so that we have a lot of log with little code
@@ -109,15 +109,15 @@ def save_data():
     users_json: str = json.dumps([user for user in users.keys()])
     groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
 
-    with open(USERS_FILE, "w") as f:
-        f.write(users_json)
+    # with open(USERS_FILE, "w") as f:
+    #     f.write(users_json)
 
-    with open(GROUPS_FILE, "w") as f:
-        f.write(groups_json)
+    # with open(GROUPS_FILE, "w") as f:
+    #     f.write(groups_json)
 
 
-    # write_queue.put((USERS_FILE, users_json))
-    # write_queue.put((GROUPS_FILE, groups_json))
+    write_queue.put((USERS_FILE, users_json))
+    write_queue.put((GROUPS_FILE, groups_json))
 
 
 def writer_thread():
