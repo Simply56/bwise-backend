@@ -22,9 +22,8 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 # wrapper so that we have a lot of log with little code
 def jsonify(*args, **kwargs):
     if DEBUG:
-        print(args)
-        print(kwargs)
         print()
+        print(args)
     return flask.jsonify(*args, **kwargs)
 
 
@@ -418,17 +417,14 @@ def settle_up():
 
     # Remove all transactions between the two members
     original_transaction_count = len(group.transactions)
-    group.transactions = [
-        t
-        for t in group.transactions
-        if (
-            t.from_user != username
-            and t.from_user != to_user
-            and t.to_user != to_user
-            and t.from_user != to_user
-        )
-    ]
+    updated_transactions: list[Transaction] = []
 
+    for trn in group.transactions:
+        if trn.from_user == username or trn.to_user == username:
+            continue
+        updated_transactions.append(trn)
+
+    group.transactions = updated_transactions
     settled_transaction_count = original_transaction_count - len(group.transactions)
 
     save_data()
