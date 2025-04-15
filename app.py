@@ -274,8 +274,6 @@ def settle_up_internal(username1: str, group: Group, username2: str):
 
     group.transactions = updated_transactions
 
-    save_data()
-
 
 @app.route("/settle_up", methods=["POST"])
 def settle_up():
@@ -306,6 +304,7 @@ def settle_up():
 
     original_transaction_count = len(group.transactions)
     settle_up_internal(username, group, to_user)
+    save_data()
     settled_transaction_count = original_transaction_count - len(group.transactions)
     return (
         jsonify(
@@ -356,17 +355,13 @@ def kick_user():
                 403,
             )
 
+    # kicked user settles all of his debts
+    for member_name in group.members:
+        settle_up_internal(username, group, member_name)
+    save_data()    
+
+
     group.members.remove(target_username)
-
-    # TODO: CALL SETTLE DEBTS ON THE KICKED USER
-    # Remove transactions involving the kicked user
-    group.transactions = [
-        t
-        for t in group.transactions
-        if t.from_user != target_username and t.to_user != target_username
-    ]
-
-    # save_data()
 
     return (
         jsonify(
