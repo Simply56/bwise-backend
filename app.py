@@ -466,7 +466,8 @@ def get_debts():
         return jsonify({"message": f"User {username} is not a member of {group.name}"}), 403
 
     # Calculate debts per user
-    debts = {}
+    debts: dict[str, float] = {}
+    
     for transaction in group.transactions:
         if transaction.from_user == username:
             # User owes money to someone
@@ -481,13 +482,16 @@ def get_debts():
 
     # Format the result
     result = []
-    for user, amount in debts.items():
+    for user in group.members:
+        amount = debts.get(user, 0.0)
         if amount > 0:
             result.append({"username": user, "amount": amount, "status": "you owe"})
         elif amount < 0:
             result.append(
                 {"username": user, "amount": abs(amount), "status": "owes you"}
             )
+        else:
+            result.append({"username": user, "amount": amount, "status": "settled up"})
 
     return (
         jsonify(

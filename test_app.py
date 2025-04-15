@@ -328,7 +328,8 @@ def test_add_expense(client):
 
     # Verify that each member owes 100 (300/3)
     debts = data["debts"]
-    assert len(debts) == 2  # Two members owe money to the payer
+
+    assert len(debts) == 3
 
     # Check that member1 owes 100
     member1_debt = next((debt for debt in debts if debt["username"] == "member1"), None)
@@ -341,6 +342,12 @@ def test_add_expense(client):
     assert member2_debt is not None
     assert member2_debt["status"] == "owes you"
     assert member2_debt["amount"] == 100
+
+    # Check that payer owes nothing to himself
+    payer_debt = next((debt for debt in debts if debt["username"] == "payer"), None)
+    assert payer_debt is not None
+    assert payer_debt["status"] == "settled up"
+    assert payer_debt["amount"] == 0
 
 
 def test_add_expense_nonexistent_group(client):
@@ -470,7 +477,9 @@ def test_settle_up(client):
 
     # Verify that there are no debts
     debts = data["debts"]
-    assert len(debts) == 0
+    for debt in debts:
+        assert debt["amount"] == 0.0
+    
 
 
 def test_kick_user(client):
@@ -542,7 +551,9 @@ def test_kick_user(client):
 
     # Verify that there are no debts
     debts = data["debts"]
-    assert len(debts) == 0
+    for debt in debts:
+        assert debt["amount"] == 0.0
+        assert debt["username"] != "debtor"
 
     # the last user kicks himself out
     response = client.post(
