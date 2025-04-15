@@ -115,7 +115,6 @@ def save_data():
     # with open(GROUPS_FILE, "w") as f:
     #     f.write(groups_json)
 
-
     write_queue.put((USERS_FILE, users_json))
     write_queue.put((GROUPS_FILE, groups_json))
 
@@ -311,7 +310,12 @@ def kick_user():
     # save_data()
 
     return (
-        jsonify({"message": f"User {username} kicked successfully", "group": group.to_dict()}),
+        jsonify(
+            {
+                "message": f"User {username} kicked successfully",
+                "group": group.to_dict(),
+            }
+        ),
         200,
     )
 
@@ -364,7 +368,10 @@ def add_expense():
     group = groups[group_name]
 
     if username not in group.members:
-        return jsonify({"message": f"User {username} is not a member of {group.name}"}), 403
+        return (
+            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            403,
+        )
 
     # Calculate equal share for each member
     num_members = len(group.members)
@@ -413,7 +420,10 @@ def settle_up():
     group = groups[group_name]
 
     if username not in group.members or to_user not in group.members:
-        return jsonify({"message": f"User {username} is not a member of {group.name}"}), 403
+        return (
+            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            403,
+        )
 
     # Remove all transactions between the two members
     original_transaction_count = len(group.transactions)
@@ -459,11 +469,14 @@ def get_debts():
     group = groups[group_name]
 
     if username not in group.members:
-        return jsonify({"message": f"User {username} is not a member of {group.name}"}), 403
+        return (
+            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            403,
+        )
 
     # Calculate debts per user
     debts: dict[str, float] = {}
-    
+
     for transaction in group.transactions:
         if transaction.from_user == username:
             # User owes money to someone
