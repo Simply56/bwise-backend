@@ -516,6 +516,7 @@ def shutdown_handler(signum, frame):
 
 
 if __name__ == "__main__":
+    load_data()
 
     thread = Thread(target=writer_thread)
     thread.start()
