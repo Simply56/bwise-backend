@@ -536,6 +536,10 @@ def shutdown_handler(signum, frame):
 
 
 if __name__ == "__main__":
+    # Register handlers for SIGINT (Ctrl+C) and SIGTERM (e.g., pkill)
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
+
     load_data()
 
     thread = Thread(target=writer_thread)
@@ -545,7 +549,3 @@ if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5000)
     else:
         serve(app, host="0.0.0.0", port=5000)
-
-    # Register handlers for SIGINT (Ctrl+C) and SIGTERM (e.g., pkill)
-    signal.signal(signal.SIGINT, shutdown_handler)
-    signal.signal(signal.SIGTERM, shutdown_handler)
