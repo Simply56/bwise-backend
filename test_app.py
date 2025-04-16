@@ -536,7 +536,6 @@ def test_kick_user(client):
     data = json.loads(response.data)
     assert len(data["group"]) != 0
     assert data["group"]["name"] == "kick_group"
-    assert len(data["group"]["transactions"]) == 0
     assert "debtor" not in list(data["group"]["members"])
 
     # Check that the debt is settled
@@ -574,7 +573,7 @@ def test_kick_user(client):
 
 @pytest.mark.report_tracemalloc
 def test_performance(client):
-    size = 30
+    size = 50
     users: list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:

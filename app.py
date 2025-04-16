@@ -63,6 +63,13 @@ class Group:
             "members": self.members,
             "transactions": [t.to_dict() for t in self.transactions],
         }
+    # same as to dict but doesnt send the transactions to save bandwidth
+    def to_dict_response(self):
+        return {
+            "name": self.name,
+            "creator": self.creator,
+            "members": self.members,
+        }
 
 
 write_queue: Queue[tuple[str, str]] = Queue()
@@ -220,7 +227,7 @@ def join_group():
         jsonify(
             {
                 "message": f"User {username} joined successfully",
-                "group": group.to_dict(),
+                "group": group.to_dict_response(),
             }
         ),
         200,
@@ -311,7 +318,7 @@ def settle_up():
             {
                 "message": "Settled up successfully",
                 "transactions_settled": settled_transaction_count,
-                "group": group.to_dict(),
+                "group": group.to_dict_response(),
             }
         ),
         200,
@@ -361,12 +368,12 @@ def kick_user():
 
     group.members.remove(target_username)
 
-    save_data()    
+    save_data()
     return (
         jsonify(
             {
                 "message": f"User {username} kicked successfully",
-                "group": group.to_dict(),
+                "group": group.to_dict_response(),
             }
         ),
         200,
@@ -386,7 +393,7 @@ def get_user_groups():
         return jsonify({"message": f"User {username} does not exist"}), 404
 
     user_groups = [
-        group.to_dict() for group in groups.values() if username in group.members
+        group.to_dict_response() for group in groups.values() if username in group.members
     ]
 
     return jsonify({"message": "Groups retrieved", "groups": user_groups}), 200
@@ -444,7 +451,7 @@ def add_expense():
                 "message": "Expense added successfully",
                 "amount": amount,
                 "share_per_member": share_per_member,
-                "group": group.to_dict(),
+                "group": group.to_dict_response(),
             }
         ),
         201,
