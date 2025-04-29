@@ -1,5 +1,6 @@
 import flask
 from flask import Flask, request
+from flask.wrappers import Response
 from waitress import serve
 import json
 import os
@@ -20,7 +21,7 @@ app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 
 # wrapper so that we have a lot of log with little code
-def jsonify(*args, **kwargs):
+def jsonify(*args, **kwargs) -> Response:
     if DEBUG:
         print()
         print(args)
@@ -76,8 +77,8 @@ class Group:
 
 write_queue: Queue[tuple[str, str]] = Queue()
 # In-memory storage
-users: dict[str, User] = {}
-groups: dict[str, Group] = {}
+USERS: dict[str, User] = {}
+GROUPS: dict[str, Group] = {}
 
 # File paths
 USERS_FILE = "users.json"
@@ -86,12 +87,12 @@ GROUPS_FILE = "groups.json"
 
 # Helper functions for data persistence
 def load_data():
-    global users, groups
+    global USERS, GROUPS
 
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r") as f:
             users_data = json.load(f)
-            users = {username: User(username) for username in users_data}
+            USERS = {username: User(username) for username in users_data}
 
     if os.path.exists(GROUPS_FILE):
         with open(GROUPS_FILE, "r") as f:
@@ -110,16 +111,16 @@ def load_data():
                     )
                     group.transactions.append(transaction)
 
-                groups[group.name] = group
+                GROUPS[group.name] = group
 
 
-def save_data():
+def save_data() -> None:
     users_json: str = json.dumps(
-        [user for user in users.keys()]
+        [user for user in USERS.keys()]
     )  # this is still called before we return
     write_queue.put((USERS_FILE, users_json))
 
-    groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
+    groups_json: str = json.dumps([group.to_dict() for group in GROUPS.values()])
     write_queue.put((GROUPS_FILE, groups_json))
 
     # with open(USERS_FILE, "w") as f:
@@ -129,7 +130,7 @@ def save_data():
     #     f.write(groups_json)
 
 
-def writer_thread():
+def writer_thread() -> None:
     while True:  # not a busy wait
         item: tuple[str, str] = write_queue.get()  # this blocks and sleeps the thread
         if item is None:
@@ -152,11 +153,11 @@ def login():
         return jsonify({"message": "Username is required to Login"}), 400
 
     # If user exists, return success
-    if username in users:
+    if username in USERS:
         return jsonify({"message": "Login successful", "username": username}), 200
 
     # If user doesn't exist, create a new one
-    users[username] = User(username)
+    USERS[username] = User(username)
     save_data()
     return (
         jsonify(
@@ -178,14 +179,14 @@ def create_group():
     if not username or not group_name:
         return jsonify({"message": "Username and group_name are required"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name in groups:
+    if group_name in GROUPS:
         return jsonify({"message": f"Group {group_name} already exists"}), 409
 
     group = Group(group_name, username)
-    groups[group_name] = group
+    GROUPS[group_name] = group
     save_data()
 
     return (
@@ -208,13 +209,13 @@ def join_group():
     if not username or not group_name:
         return jsonify({"message": "Username and group_name are required"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
-    group = groups[group_name]
+    group = GROUPS[group_name]
 
     if username in group.members:
         return (
@@ -247,14 +248,14 @@ def delete_group():
     if not username or not group_name:
         return jsonify({"message": "Username and group_name are required"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
     if not username.startswith("admin"):
-        group = groups[group_name]
+        group = GROUPS[group_name]
         if group.creator != username:
             return (
                 jsonify(
@@ -265,7 +266,7 @@ def delete_group():
                 403,
             )
 
-    groups.pop(group_name)
+    GROUPS.pop(group_name)
     save_data()
 
     return (jsonify({"message": f"Group {group_name} deleted succesfuly"}), 200)
@@ -299,13 +300,13 @@ def settle_up():
             400,
         )
 
-    if username not in users or to_user not in users:
+    if username not in USERS or to_user not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
-    group = groups[group_name]
+    group = GROUPS[group_name]
 
     if username not in group.members or to_user not in group.members:
         return (
@@ -344,13 +345,13 @@ def kick_user():
             400,
         )
 
-    if username not in users or target_username not in users:
+    if username not in USERS or target_username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
-    group = groups[group_name]
+    group = GROUPS[group_name]
 
     if target_username not in group.members:
         return jsonify({"message": f"{username} is not a member of this group"}), 404
@@ -393,12 +394,12 @@ def get_user_groups():
     if not username:
         return jsonify({"message": "Username is required"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
     user_groups = [
         group.to_dict_response()
-        for group in groups.values()
+        for group in GROUPS.values()
         if username in group.members
     ]
 
@@ -425,13 +426,13 @@ def add_expense():
     except ValueError:
         return jsonify({"message": "Amount must be a number"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
-    group = groups[group_name]
+    group = GROUPS[group_name]
 
     if username not in group.members:
         return (
@@ -473,13 +474,13 @@ def get_debts():
     if not username or not group_name:
         return jsonify({"message": "Username and group_name are required"}), 400
 
-    if username not in users:
+    if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
-    if group_name not in groups:
+    if group_name not in GROUPS:
         return jsonify({"message": f"Group {group_name} does not exist"}), 404
 
-    group = groups[group_name]
+    group = GROUPS[group_name]
 
     if username not in group.members:
         return (
