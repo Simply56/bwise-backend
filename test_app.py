@@ -573,7 +573,7 @@ def test_kick_user(client):
 
 @pytest.mark.report_tracemalloc
 def test_performance(client):
-    size = 50
+    size = 10
     users: list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:

@@ -5,7 +5,8 @@ import json
 import os
 from queue import Queue
 from threading import Thread
-import signal
+import signal  # for gracefull shutdowns
+from dataclasses import dataclass
 
 
 app = Flask(__name__)
@@ -27,19 +28,19 @@ def jsonify(*args, **kwargs):
 
 
 # Data models
+@dataclass
 class User:  # TODO: USER IS ONLY USED WHEN IT'S STORED
-    def __init__(self, username: str):
-        self.username = str(username)
+    username: str
 
     def to_dict(self):
         return {"username": self.username}
 
 
+@dataclass
 class Transaction:
-    def __init__(self, from_user: str, to_user: str, amount: float):
-        self.from_user = str(from_user)  # User who owes money
-        self.to_user = str(to_user)  # User who is owed money
-        self.amount = float(amount)
+    from_user: str  # User who owes money
+    to_user: str  # User who is owed money
+    amount: float
 
     def to_dict(self):
         return {
@@ -63,8 +64,9 @@ class Group:
             "members": self.members,
             "transactions": [t.to_dict() for t in self.transactions],
         }
-    # same as to dict but doesnt send the transactions to save bandwidth
+
     def to_dict_response(self):
+        """same as to dict but doesnt send the transactions to save bandwidth"""
         return {
             "name": self.name,
             "creator": self.creator,
@@ -112,7 +114,9 @@ def load_data():
 
 
 def save_data():
-    users_json: str = json.dumps([user for user in users.keys()])
+    users_json: str = json.dumps(
+        [user for user in users.keys()]
+    )  # this is still called before we return
     write_queue.put((USERS_FILE, users_json))
 
     groups_json: str = json.dumps([group.to_dict() for group in groups.values()])
@@ -393,7 +397,9 @@ def get_user_groups():
         return jsonify({"message": f"User {username} does not exist"}), 404
 
     user_groups = [
-        group.to_dict_response() for group in groups.values() if username in group.members
+        group.to_dict_response()
+        for group in groups.values()
+        if username in group.members
     ]
 
     return jsonify({"message": "Groups retrieved", "groups": user_groups}), 200
@@ -539,6 +545,7 @@ if __name__ == "__main__":
     # Register handlers for SIGINT (Ctrl+C) and SIGTERM (e.g., pkill)
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGKILL, shutdown_handler)
 
     load_data()
 
