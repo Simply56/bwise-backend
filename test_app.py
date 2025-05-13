@@ -16,6 +16,7 @@ def client():
 
 
 def test_all_have_message(client):
+    """Verifies that the every endpoint return json with the key 'message'"""
     missing_message = []
 
     for rule in app.url_map.iter_rules():
@@ -479,7 +480,6 @@ def test_settle_up(client):
     debts = data["debts"]
     for debt in debts:
         assert debt["amount"] == 0.0
-    
 
 
 def test_kick_user(client):
