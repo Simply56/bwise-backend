@@ -183,7 +183,6 @@ def test_delete_group(client):
         content_type="application/json",
     )
     assert response.status_code == 200
-    data = json.loads(response.data)
 
     # Verify the group is deleted
     response = client.post(
@@ -192,7 +191,6 @@ def test_delete_group(client):
         content_type="application/json",
     )
     assert response.status_code == 404
-    data = json.loads(response.data)
 
 
 def test_delete_group_not_creator(client):
@@ -250,7 +248,6 @@ def test_admin_delete_group(client):
         content_type="application/json",
     )
     assert response.status_code == 200
-    data = json.loads(response.data)
 
 
 def test_get_user_groups(client):
