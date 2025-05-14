@@ -1,5 +1,5 @@
 import flask
-from flask import Flask, request
+from flask import Flask, Request, request
 from flask.wrappers import Response
 from waitress import serve
 import json
@@ -12,12 +12,6 @@ from dataclasses import dataclass
 
 app = Flask(__name__)
 DEBUG: bool = True
-
-# TODO: REJECT REQUESTS IF MEMORY IS ALMOST FULL
-
-
-# Limit request size to 500MB (adjust as needed)
-app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 
 # wrapper so that we have a lot of log with little code
@@ -170,14 +164,24 @@ def login():
     )
 
 
+def validate_request(request: Request, *keys: str):
+    data: dict = request.get_json()
+    missing_keys = [key for key in keys if data.get(key) is None]
+
+    if missing_keys:
+        # Return the first missing key in the error
+        raise KeyError((jsonify({"message": f"{missing_keys[0]} is required"}), 400))
+
+    values = [data.get(key) for key in keys]
+    return values[0] if len(values) == 1 else tuple(values)
+
+
 @app.route("/create_group", methods=["POST"])
 def create_group():
-    data: dict = request.get_json()
-    username = data.get("username")
-    group_name = data.get("group_name")
-
-    if not username or not group_name:
-        return jsonify({"message": "Username and group_name are required"}), 400
+    try:
+        username, group_name = validate_request(request, "username", "group_name")
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -202,12 +206,10 @@ def create_group():
 
 @app.route("/join_group", methods=["POST"])
 def join_group():
-    data: dict = request.get_json()
-    username = data.get("username")
-    group_name = data.get("group_name")
-
-    if not username or not group_name:
-        return jsonify({"message": "Username and group_name are required"}), 400
+    try:
+        username, group_name = validate_request(request, "username", "group_name")
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -241,12 +243,10 @@ def join_group():
 
 @app.route("/delete_group", methods=["POST"])
 def delete_group():
-    data: dict = request.get_json()
-    username: str = data.get("username")
-    group_name = data.get("group_name")
-
-    if not username or not group_name:
-        return jsonify({"message": "Username and group_name are required"}), 400
+    try:
+        username, group_name = validate_request(request, "username", "group_name")
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -289,16 +289,12 @@ def settle_up_internal(username1: str, group: Group, username2: str):
 
 @app.route("/settle_up", methods=["POST"])
 def settle_up():
-    data: dict = request.get_json()
-    username = data.get("username")  # User who is settling up
-    to_user = data.get("to_user")  # User who is being paid
-    group_name = data.get("group_name")
-
-    if not username or not to_user or not group_name:
-        return (
-            jsonify({"message": "Username, to_user, and group_name are required"}),
-            400,
+    try:
+        username, to_user, group_name = validate_request(
+            request, "username", "to_user", "group_name"
         )
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS or to_user not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -332,18 +328,12 @@ def settle_up():
 
 @app.route("/kick_user", methods=["POST"])
 def kick_user():
-    data: dict = request.get_json()
-    username: str = data.get("username")  # User requesting the kick
-    target_username = data.get("target_username")  # User to be kicked
-    group_name = data.get("group_name")
-
-    if not username or not target_username or not group_name:
-        return (
-            jsonify(
-                {"message": "Username, target_username, and group_name are required"}
-            ),
-            400,
+    try:
+        username, target_username, group_name = validate_request(
+            request, "username", "target_username", "group_name"
         )
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS or target_username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -388,11 +378,10 @@ def kick_user():
 # changed to post because retrofit does not accept GET request with json bodies
 @app.route("/get_user_groups", methods=["POST"])
 def get_user_groups():
-    data: dict = request.get_json()
-    username = data.get("username")
-
-    if not username:
-        return jsonify({"message": "Username is required"}), 400
+    try:
+        username = validate_request(request, "username")
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
@@ -408,16 +397,12 @@ def get_user_groups():
 
 @app.route("/add_expense", methods=["POST"])
 def add_expense():
-    data: dict = request.get_json()
-    username = data.get("username")  # User who paid
-    group_name = data.get("group_name")
-    amount = data.get("amount")
-
-    if not username or not group_name or amount is None:
-        return (
-            jsonify({"message": "Username, group_name, and amount are required"}),
-            400,
+    try:
+        username, group_name, amount = validate_request(
+            request, "username", "group_name", "amount"
         )
+    except KeyError as e:
+        return e.args[0]
 
     try:
         amount = float(amount)
@@ -467,12 +452,10 @@ def add_expense():
 
 @app.route("/get_debts", methods=["POST"])
 def get_debts():
-    data: dict = request.get_json()
-    username = data.get("username")
-    group_name = data.get("group_name")
-
-    if not username or not group_name:
-        return jsonify({"message": "Username and group_name are required"}), 400
+    try:
+        username, group_name = validate_request(request, "username", "group_name")
+    except KeyError as e:
+        return e.args[0]
 
     if username not in USERS:
         return jsonify({"message": f"User {username} does not exist"}), 404
