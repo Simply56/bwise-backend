@@ -91,7 +91,6 @@ def load_data():
     if os.path.exists(GROUPS_FILE):
         with open(GROUPS_FILE, "r") as f:
             groups_data = json.load(f)
-            # groups = {}
             for group_dict in groups_data:
                 group = Group(group_dict["name"], group_dict["creator"])
                 group.members = group_dict["members"]
