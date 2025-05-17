@@ -1,21 +1,23 @@
-import flask
-from flask import Flask, Request, request
-from flask.wrappers import Response
-from waitress import serve
 import json
 import os
-from queue import Queue
-from threading import Thread
+import queue
 import signal  # for gracefull shutdowns
+import threading
 from dataclasses import dataclass
 
+import flask
+import waitress
+from flask.wrappers import Response
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 DEBUG: bool = True
 
 
-# wrapper so that we have a lot of log with little code
 def jsonify(*args, **kwargs) -> Response:
+    """
+    Wrapper of the flask.jsonify() function
+    that prints the passed args. Used for debugging only
+    """
     if DEBUG:
         print()
         print(args)
@@ -24,7 +26,7 @@ def jsonify(*args, **kwargs) -> Response:
 
 # Data models
 @dataclass
-class User:  # TODO: USER IS ONLY USED WHEN IT'S STORED
+class User:
     username: str
 
     def to_dict(self):
@@ -37,7 +39,7 @@ class Transaction:
     to_user: str  # User who is owed money
     amount: float
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | float]:
         return {
             "from_user": self.from_user,
             "to_user": self.to_user,
@@ -60,7 +62,7 @@ class Group:
             "transactions": [t.to_dict() for t in self.transactions],
         }
 
-    def to_dict_response(self):
+    def to_dict_no_transactions(self):
         # same as to dict but doesnt send the transactions to save bandwidth
         return {
             "name": self.name,
@@ -69,10 +71,10 @@ class Group:
         }
 
 
-write_queue: Queue[tuple[str, str]] = Queue()
+write_queue: queue.Queue[tuple[str, str] | None] = queue.Queue()
 # In-memory storage
-USERS: dict[str, User] = {}
-GROUPS: dict[str, Group] = {}
+USERS: dict[str, User] = dict()
+GROUPS: dict[str, Group] = dict()
 
 # File paths
 USERS_FILE = "users.json"
@@ -80,7 +82,7 @@ GROUPS_FILE = "groups.json"
 
 
 # Helper functions for data persistence
-def load_data():
+def load_data() -> None:
     global USERS
 
     if os.path.exists(USERS_FILE):
@@ -96,7 +98,7 @@ def load_data():
                 group.members = group_dict["members"]
 
                 # Reconstruct transactions
-                for t_dict in group_dict.get("transactions", []):
+                for t_dict in group_dict.get("transactions", dict):
                     transaction = Transaction(
                         t_dict["from_user"],
                         t_dict["to_user"],
@@ -108,6 +110,12 @@ def load_data():
 
 
 def save_data() -> None:
+    """
+    Saves the current in-memory representation of GROUPS and USERS
+    into a json file.
+    For a faster response time, the strings to write
+    are first put into a queue and the  writing is done after responding
+    """
     users_json: str = json.dumps(
         [user for user in USERS.keys()]
     )  # this is still called before we return
@@ -121,9 +129,8 @@ def save_data() -> None:
 
 def writer_thread() -> None:
     while True:  # not a busy wait
-        item: tuple[str, str] = (
-            write_queue.get()
-        )  # this blocks and sleeps the thread
+        # this blocks and sleeps the thread
+        item: tuple[str, str] | None = write_queue.get()
         if item is None:
             break
 
@@ -134,10 +141,9 @@ def writer_thread() -> None:
         write_queue.task_done()
 
 
-# TODO: ADD PASSWORD AUTHENTIFICATION
 @app.route("/login", methods=["POST"])
 def login() -> tuple[Response, int]:
-    data: dict = request.get_json()
+    data: dict = flask.request.get_json()
     username = data.get("username")
 
     if not username:
@@ -164,8 +170,8 @@ def login() -> tuple[Response, int]:
     )
 
 
-def validate_request(request: Request, *keys: str):
-    data: dict = request.get_json()
+def validate_request(request: flask.Request, *keys: str):
+    data: dict = flask.request.get_json()
     missing_keys = [key for key in keys if data.get(key) is None]
 
     if missing_keys:
@@ -182,7 +188,7 @@ def validate_request(request: Request, *keys: str):
 def create_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
-            request, "username", "group_name"
+            flask.request, "username", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -212,7 +218,7 @@ def create_group() -> tuple[Response, int]:
 def join_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
-            request, "username", "group_name"
+            flask.request, "username", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -240,7 +246,7 @@ def join_group() -> tuple[Response, int]:
         jsonify(
             {
                 "message": f"User {username} joined successfully",
-                "group": group.to_dict_response(),
+                "group": group.to_dict_no_transactions(),
             }
         ),
         200,
@@ -251,7 +257,7 @@ def join_group() -> tuple[Response, int]:
 def delete_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
-            request, "username", "group_name"
+            flask.request, "username", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -281,7 +287,7 @@ def delete_group() -> tuple[Response, int]:
     )
 
 
-def settle_up_internal(username1: str, group: Group, username2: str):
+def settle_up_internal(username1: str, group: Group, username2: str) -> None:
     # Remove all transactions between the two members
     updated_transactions: list[Transaction] = []
 
@@ -300,7 +306,7 @@ def settle_up_internal(username1: str, group: Group, username2: str):
 def settle_up() -> tuple[Response, int]:
     try:
         username, to_user, group_name = validate_request(
-            request, "username", "to_user", "group_name"
+            flask.request, "username", "to_user", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -332,7 +338,7 @@ def settle_up() -> tuple[Response, int]:
             {
                 "message": "Settled up successfully",
                 "transactions_settled": settled_transaction_count,
-                "group": group.to_dict_response(),
+                "group": group.to_dict_no_transactions(),
             }
         ),
         200,
@@ -343,7 +349,7 @@ def settle_up() -> tuple[Response, int]:
 def kick_user() -> tuple[Response, int]:
     try:
         username, target_username, group_name = validate_request(
-            request, "username", "target_username", "group_name"
+            flask.request, "username", "target_username", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -382,18 +388,18 @@ def kick_user() -> tuple[Response, int]:
         jsonify(
             {
                 "message": f"User {username} kicked successfully",
-                "group": group.to_dict_response(),
+                "group": group.to_dict_no_transactions(),
             }
         ),
         200,
     )
 
 
-# changed to post because retrofit does not accept GET request with json bodies
+# changed to post because retrofit can't create GET request with json bodies
 @app.route("/get_user_groups", methods=["POST"])
 def get_user_groups() -> tuple[Response, int]:
     try:
-        username = validate_request(request, "username")
+        username = validate_request(flask.request, "username")
     except KeyError as e:
         return e.args[0]
 
@@ -401,7 +407,7 @@ def get_user_groups() -> tuple[Response, int]:
         return jsonify({"message": f"User {username} does not exist"}), 404
 
     user_groups = [
-        group.to_dict_response()
+        group.to_dict_no_transactions()
         for group in GROUPS.values()
         if username in group.members
     ]
@@ -413,7 +419,7 @@ def get_user_groups() -> tuple[Response, int]:
 def add_expense() -> tuple[Response, int]:
     try:
         username, group_name, amount = validate_request(
-            request, "username", "group_name", "amount"
+            flask.request, "username", "group_name", "amount"
         )
     except KeyError as e:
         return e.args[0]
@@ -457,7 +463,7 @@ def add_expense() -> tuple[Response, int]:
                 "message": "Expense added successfully",
                 "amount": amount,
                 "share_per_member": share_per_member,
-                "group": group.to_dict_response(),
+                "group": group.to_dict_no_transactions(),
             }
         ),
         201,
@@ -468,7 +474,7 @@ def add_expense() -> tuple[Response, int]:
 def get_debts() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
-            request, "username", "group_name"
+            flask.request, "username", "group_name"
         )
     except KeyError as e:
         return e.args[0]
@@ -521,7 +527,7 @@ def get_debts() -> tuple[Response, int]:
 
 
 def calculate_relative_debt(group: Group, username: str) -> dict[str, float]:
-    debts: dict[str, float] = {}
+    debts: dict[str, float] = dict()
 
     for transaction in group.transactions:
         if transaction.from_user == username:
@@ -558,10 +564,10 @@ if __name__ == "__main__":
 
     load_data()
 
-    thread = Thread(target=writer_thread)
+    thread = threading.Thread(target=writer_thread)
     thread.start()
 
     if DEBUG:
         app.run(host="0.0.0.0", port=5000)
     else:
-        serve(app, host="0.0.0.0", port=5000)
+        waitress.serve(app, host="0.0.0.0", port=5000)
