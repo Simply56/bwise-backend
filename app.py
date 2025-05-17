@@ -1,4 +1,3 @@
-from typing import Any
 import flask
 from flask import Flask, Request, request
 from flask.wrappers import Response
@@ -137,7 +136,7 @@ def writer_thread() -> None:
 
 # TODO: ADD PASSWORD AUTHENTIFICATION
 @app.route("/login", methods=["POST"])
-def login():
+def login() -> tuple[Response, int]:
     data: dict = request.get_json()
     username = data.get("username")
 
@@ -175,13 +174,12 @@ def validate_request(request: Request, *keys: str):
             (jsonify({"message": f"{missing_keys[0]} is required"}), 400)
         )
 
-
     values = [str(data.get(key)) for key in keys]
     return values[0] if len(values) == 1 else tuple(values)
 
 
 @app.route("/create_group", methods=["POST"])
-def create_group():
+def create_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
             request, "username", "group_name"
@@ -211,7 +209,7 @@ def create_group():
 
 
 @app.route("/join_group", methods=["POST"])
-def join_group():
+def join_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
             request, "username", "group_name"
@@ -230,9 +228,7 @@ def join_group():
     if username in group.members:
         return (
             jsonify(
-                {
-                    "message": f"{username} is already member of {group.name}"
-                }
+                {"message": f"{username} is already member of {group.name}"}
             ),
             409,
         )
@@ -252,7 +248,7 @@ def join_group():
 
 
 @app.route("/delete_group", methods=["POST"])
-def delete_group():
+def delete_group() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
             request, "username", "group_name"
@@ -271,9 +267,7 @@ def delete_group():
         if group.creator != username:
             return (
                 jsonify(
-                    {
-                        "message": f"Only {group.creator} can delete groups"
-                    }
+                    {"message": f"Only {group.creator} can delete groups"}
                 ),
                 403,
             )
@@ -303,7 +297,7 @@ def settle_up_internal(username1: str, group: Group, username2: str):
 
 
 @app.route("/settle_up", methods=["POST"])
-def settle_up():
+def settle_up() -> tuple[Response, int]:
     try:
         username, to_user, group_name = validate_request(
             request, "username", "to_user", "group_name"
@@ -346,7 +340,7 @@ def settle_up():
 
 
 @app.route("/kick_user", methods=["POST"])
-def kick_user():
+def kick_user() -> tuple[Response, int]:
     try:
         username, target_username, group_name = validate_request(
             request, "username", "target_username", "group_name"
@@ -372,9 +366,7 @@ def kick_user():
         if username != group.creator and username != target_username:
             return (
                 jsonify(
-                    {
-                        "message": f"Only {group.creator} can kick other users"
-                    }
+                    {"message": f"Only {group.creator} can kick other users"}
                 ),
                 403,
             )
@@ -399,7 +391,7 @@ def kick_user():
 
 # changed to post because retrofit does not accept GET request with json bodies
 @app.route("/get_user_groups", methods=["POST"])
-def get_user_groups():
+def get_user_groups() -> tuple[Response, int]:
     try:
         username = validate_request(request, "username")
     except KeyError as e:
@@ -418,7 +410,7 @@ def get_user_groups():
 
 
 @app.route("/add_expense", methods=["POST"])
-def add_expense():
+def add_expense() -> tuple[Response, int]:
     try:
         username, group_name, amount = validate_request(
             request, "username", "group_name", "amount"
@@ -428,8 +420,6 @@ def add_expense():
 
     try:
         amount = float(amount)
-        if amount <= 0:
-            return jsonify({"message": "Amount must be positive"}), 400
     except ValueError:
         return jsonify({"message": "Amount must be a number"}), 400
 
@@ -475,7 +465,7 @@ def add_expense():
 
 
 @app.route("/get_debts", methods=["POST"])
-def get_debts():
+def get_debts() -> tuple[Response, int]:
     try:
         username, group_name = validate_request(
             request, "username", "group_name"
@@ -499,23 +489,9 @@ def get_debts():
             403,
         )
 
-    # Calculate debts per user
-    debts: dict[str, float] = {}
-
-    for transaction in group.transactions:
-        if transaction.from_user == username:
-            # User owes money to someone
-            if transaction.to_user not in debts:
-                debts[transaction.to_user] = 0
-            debts[transaction.to_user] += transaction.amount
-        elif transaction.to_user == username:
-            # Someone owes money to the user
-            if transaction.from_user not in debts:
-                debts[transaction.from_user] = 0
-            debts[transaction.from_user] -= transaction.amount
-
+    debts = calculate_relative_debt(group, username)
     # Format the result
-    result = []
+    result: list[dict[str, str | float]] = []
     for user in group.members:
         amount = debts.get(user, 0.0)
         if amount > 0:
@@ -542,6 +518,24 @@ def get_debts():
         ),
         200,
     )
+
+
+def calculate_relative_debt(group: Group, username: str) -> dict[str, float]:
+    debts: dict[str, float] = {}
+
+    for transaction in group.transactions:
+        if transaction.from_user == username:
+            # User owes money to someone
+            if transaction.to_user not in debts:
+                debts[transaction.to_user] = 0
+            debts[transaction.to_user] += transaction.amount
+        elif transaction.to_user == username:
+            # Someone owes money to the user
+            if transaction.from_user not in debts:
+                debts[transaction.from_user] = 0
+            debts[transaction.from_user] -= transaction.amount
+
+    return debts
 
 
 def shutdown_handler(signum, frame):
