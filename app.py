@@ -1,3 +1,4 @@
+from typing import Any
 import flask
 from flask import Flask, Request, request
 from flask.wrappers import Response
@@ -61,7 +62,7 @@ class Group:
         }
 
     def to_dict_response(self):
-        """same as to dict but doesnt send the transactions to save bandwidth"""
+        # same as to dict but doesnt send the transactions to save bandwidth
         return {
             "name": self.name,
             "creator": self.creator,
@@ -81,7 +82,7 @@ GROUPS_FILE = "groups.json"
 
 # Helper functions for data persistence
 def load_data():
-    global USERS, GROUPS
+    global USERS
 
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r") as f:
@@ -113,19 +114,17 @@ def save_data() -> None:
     )  # this is still called before we return
     write_queue.put((USERS_FILE, users_json))
 
-    groups_json: str = json.dumps([group.to_dict() for group in GROUPS.values()])
+    groups_json: str = json.dumps(
+        [group.to_dict() for group in GROUPS.values()]
+    )
     write_queue.put((GROUPS_FILE, groups_json))
-
-    # with open(USERS_FILE, "w") as f:
-    #     f.write(users_json)
-
-    # with open(GROUPS_FILE, "w") as f:
-    #     f.write(groups_json)
 
 
 def writer_thread() -> None:
     while True:  # not a busy wait
-        item: tuple[str, str] = write_queue.get()  # this blocks and sleeps the thread
+        item: tuple[str, str] = (
+            write_queue.get()
+        )  # this blocks and sleeps the thread
         if item is None:
             break
 
@@ -147,7 +146,10 @@ def login():
 
     # If user exists, return success
     if username in USERS:
-        return jsonify({"message": "Login successful", "username": username}), 200
+        return (
+            jsonify({"message": "Login successful", "username": username}),
+            200,
+        )
 
     # If user doesn't exist, create a new one
     USERS[username] = User(username)
@@ -169,16 +171,21 @@ def validate_request(request: Request, *keys: str):
 
     if missing_keys:
         # Return the first missing key in the error
-        raise KeyError((jsonify({"message": f"{missing_keys[0]} is required"}), 400))
+        raise KeyError(
+            (jsonify({"message": f"{missing_keys[0]} is required"}), 400)
+        )
 
-    values = [data.get(key) for key in keys]
+
+    values = [str(data.get(key)) for key in keys]
     return values[0] if len(values) == 1 else tuple(values)
 
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
     try:
-        username, group_name = validate_request(request, "username", "group_name")
+        username, group_name = validate_request(
+            request, "username", "group_name"
+        )
     except KeyError as e:
         return e.args[0]
 
@@ -206,7 +213,9 @@ def create_group():
 @app.route("/join_group", methods=["POST"])
 def join_group():
     try:
-        username, group_name = validate_request(request, "username", "group_name")
+        username, group_name = validate_request(
+            request, "username", "group_name"
+        )
     except KeyError as e:
         return e.args[0]
 
@@ -221,7 +230,9 @@ def join_group():
     if username in group.members:
         return (
             jsonify(
-                {"message": f"User {username} is already a member of {group.name}"}
+                {
+                    "message": f"{username} is already member of {group.name}"
+                }
             ),
             409,
         )
@@ -243,7 +254,9 @@ def join_group():
 @app.route("/delete_group", methods=["POST"])
 def delete_group():
     try:
-        username, group_name = validate_request(request, "username", "group_name")
+        username, group_name = validate_request(
+            request, "username", "group_name"
+        )
     except KeyError as e:
         return e.args[0]
 
@@ -259,7 +272,7 @@ def delete_group():
             return (
                 jsonify(
                     {
-                        "message": f"Only the group creator {group.creator} can delete groups"
+                        "message": f"Only {group.creator} can delete groups"
                     }
                 ),
                 403,
@@ -268,7 +281,10 @@ def delete_group():
     GROUPS.pop(group_name)
     save_data()
 
-    return (jsonify({"message": f"Group {group_name} deleted succesfuly"}), 200)
+    return (
+        jsonify({"message": f"Group {group_name} deleted succesfuly"}),
+        200,
+    )
 
 
 def settle_up_internal(username1: str, group: Group, username2: str):
@@ -305,14 +321,18 @@ def settle_up():
 
     if username not in group.members or to_user not in group.members:
         return (
-            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            jsonify(
+                {"message": f"User {username} is not a member of {group.name}"}
+            ),
             403,
         )
 
     original_transaction_count = len(group.transactions)
     settle_up_internal(username, group, to_user)
     save_data()
-    settled_transaction_count = original_transaction_count - len(group.transactions)
+    settled_transaction_count = original_transaction_count - len(
+        group.transactions
+    )
     return (
         jsonify(
             {
@@ -343,14 +363,17 @@ def kick_user():
     group = GROUPS[group_name]
 
     if target_username not in group.members:
-        return jsonify({"message": f"{username} is not a member of this group"}), 404
+        return (
+            jsonify({"message": f"{username} is not a member of this group"}),
+            404,
+        )
 
     if not username.startswith("admin"):
         if username != group.creator and username != target_username:
             return (
                 jsonify(
                     {
-                        "message": f"Only the group creator {group.creator} can kick other users"
+                        "message": f"Only {group.creator} can kick other users"
                     }
                 ),
                 403,
@@ -420,7 +443,9 @@ def add_expense():
 
     if username not in group.members:
         return (
-            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            jsonify(
+                {"message": f"User {username} is not a member of {group.name}"}
+            ),
             403,
         )
 
@@ -452,7 +477,9 @@ def add_expense():
 @app.route("/get_debts", methods=["POST"])
 def get_debts():
     try:
-        username, group_name = validate_request(request, "username", "group_name")
+        username, group_name = validate_request(
+            request, "username", "group_name"
+        )
     except KeyError as e:
         return e.args[0]
 
@@ -466,7 +493,9 @@ def get_debts():
 
     if username not in group.members:
         return (
-            jsonify({"message": f"User {username} is not a member of {group.name}"}),
+            jsonify(
+                {"message": f"User {username} is not a member of {group.name}"}
+            ),
             403,
         )
 
@@ -490,13 +519,17 @@ def get_debts():
     for user in group.members:
         amount = debts.get(user, 0.0)
         if amount > 0:
-            result.append({"username": user, "amount": amount, "status": "you owe"})
+            result.append(
+                {"username": user, "amount": amount, "status": "you owe"}
+            )
         elif amount < 0:
             result.append(
                 {"username": user, "amount": abs(amount), "status": "owes you"}
             )
         else:
-            result.append({"username": user, "amount": amount, "status": "settled up"})
+            result.append(
+                {"username": user, "amount": amount, "status": "settled up"}
+            )
 
     return (
         jsonify(
