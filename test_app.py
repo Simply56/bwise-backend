@@ -5,14 +5,20 @@ import json
 
 
 @pytest.fixture(autouse=True)
-def run_before_each_test():
-    # clears previous data
+def run_before_each_test(request: pytest.FixtureRequest) -> None:
+    if "skip_clear" in request.keywords:
+        return  # Skip the clear script
     subprocess.call(["./clr.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 
 @pytest.fixture
 def client():
+    app.testing = True
     return app.test_client()
+
+
+
 
 
 def test_all_have_message(client):
