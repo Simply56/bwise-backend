@@ -55,12 +55,9 @@ class Group:
         self.transactions: list[Transaction] = []
 
     def to_dict(self):
-        return {
-            "name": self.name,
-            "creator": self.creator,
-            "members": self.members,
-            "transactions": [t.to_dict() for t in self.transactions],
-        }
+        result = self.to_dict_no_transactions()
+        result["transactions"] = [t.to_dict() for t in self.transactions]
+        return result
 
     def to_dict_no_transactions(self):
         # same as to dict but doesnt send the transactions to save bandwidth
@@ -81,32 +78,38 @@ USERS_FILE = "users.json"
 GROUPS_FILE = "groups.json"
 
 
-# Helper functions for data persistence
 def load_data() -> None:
+    """
+    Loads the list of Groups and Users from json file
+    when the server starts
+    """
     global USERS
 
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "r") as f:
-            users_data = json.load(f)
-            USERS = {username: User(username) for username in users_data}
+    if not os.path.exists(USERS_FILE):
+        return
+    if not os.path.exists(GROUPS_FILE):
+        return
 
-    if os.path.exists(GROUPS_FILE):
-        with open(GROUPS_FILE, "r") as f:
-            groups_data = json.load(f)
-            for group_dict in groups_data:
-                group = Group(group_dict["name"], group_dict["creator"])
-                group.members = group_dict["members"]
+    with open(USERS_FILE, "r") as f:
+        users_data = json.load(f)
+        USERS = {username: User(username) for username in users_data}
 
-                # Reconstruct transactions
-                for t_dict in group_dict.get("transactions", dict):
-                    transaction = Transaction(
-                        t_dict["from_user"],
-                        t_dict["to_user"],
-                        t_dict["amount"],
-                    )
-                    group.transactions.append(transaction)
+    with open(GROUPS_FILE, "r") as f:
+        groups_data = json.load(f)
+        for group_dict in groups_data:
+            group = Group(group_dict["name"], group_dict["creator"])
+            group.members = group_dict["members"]
 
-                GROUPS[group.name] = group
+            # Reconstruct transactions
+            for t_dict in group_dict.get("transactions", dict):
+                transaction = Transaction(
+                    t_dict["from_user"],
+                    t_dict["to_user"],
+                    t_dict["amount"],
+                )
+                group.transactions.append(transaction)
+
+            GROUPS[group.name] = group
 
 
 def save_data() -> None:
@@ -171,6 +174,16 @@ def login() -> tuple[Response, int]:
 
 
 def validate_request(request: flask.Request, *keys: str):
+    """
+    A helper function that extracts values for each key
+    from a flask request.
+    It returns the values in the same order as the keys.
+    It is designed to be used with tuple unpacking.
+
+    Raises KeyError if a key is not found in the request.
+    The propper response is included in the exeption
+    including a json payload and a http error code
+    """
     data: dict = flask.request.get_json()
     missing_keys = [key for key in keys if data.get(key) is None]
 
