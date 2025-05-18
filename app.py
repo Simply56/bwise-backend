@@ -85,10 +85,12 @@ def load_data(
     Loads the list of Groups and Users from json file
     when the server starts
     """
+    load_users(load_users_dict)
+    load_groups(load_groups_dict)
 
+
+def load_users(load_users_dict: dict[str, User]):
     if not os.path.exists(USERS_FILE):
-        return
-    if not os.path.exists(GROUPS_FILE):
         return
 
     with open(USERS_FILE, "r") as f:
@@ -96,6 +98,11 @@ def load_data(
         load_users_dict.update(
             {username: User(username) for username in users_data}
         )
+
+
+def load_groups(load_groups_dict: dict[str, Group]):
+    if not os.path.exists(GROUPS_FILE):
+        return
 
     with open(GROUPS_FILE, "r") as f:
         groups_data = json.load(f)
