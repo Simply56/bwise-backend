@@ -1,6 +1,5 @@
 import pytest
 from app import app
-import subprocess
 import json
 import os
 
@@ -40,6 +39,7 @@ def noisy_files():
     """Fixture to create test files with random garbage"""
     from app import GROUPS_FILE, USERS_FILE
     from random import randbytes
+
     # Ensure files don't exist
     if os.path.exists("users.json"):
         os.remove("users.json")
@@ -51,7 +51,7 @@ def noisy_files():
 
     with open(GROUPS_FILE, "bw") as f:
         f.write(randbytes(100))
-        
+
     yield
 
     # Cleanup after tests
@@ -172,6 +172,7 @@ def test_load_data_groups(setup_test_files):
     assert group.transactions[1].to_user == "user3"
     assert group.transactions[1].amount == 100
 
+
 def test_load_invalid_data(noisy_files):
     from app import load_data
 
@@ -179,7 +180,6 @@ def test_load_invalid_data(noisy_files):
     test_group_dict = dict()
 
     load_data(test_user_dict, test_group_dict)
-
 
     # Verify no data was loaded
     assert len(test_user_dict) == 0
@@ -194,14 +194,18 @@ def test_all_have_message(client):
         if "<" in rule.rule:
             continue
         response = client.post(
-            rule.rule, json={"username": "messenger"}, content_type="application/json"
+            rule.rule,
+            json={"username": "messenger"},
+            content_type="application/json",
         )
 
         # Ensure it's JSON and contains "message"
         try:
             data = response.get_json(force=True)
             if not isinstance(data, dict) or "message" not in data:
-                missing_message.append((rule.rule, "missing or invalid 'message'"))
+                missing_message.append(
+                    (rule.rule, "missing or invalid 'message'")
+                )
         except Exception as e:
             missing_message.append((rule.rule, f"not JSON: {e}"))
 
@@ -219,7 +223,9 @@ def test_client_not_found(client):
 
 def test_login_new_user(client):
     response = client.post(
-        "/login", json={"username": "testuser1"}, content_type="application/json"
+        "/login",
+        json={"username": "testuser1"},
+        content_type="application/json",
     )
     assert response.status_code == 201
     data = json.loads(response.data)
@@ -229,12 +235,16 @@ def test_login_new_user(client):
 def test_login_existing_user(client):
     # First create a user
     client.post(
-        "/login", json={"username": "testuser2"}, content_type="application/json"
+        "/login",
+        json={"username": "testuser2"},
+        content_type="application/json",
     )
 
     # Then try to login with the same user
     response = client.post(
-        "/login", json={"username": "testuser2"}, content_type="application/json"
+        "/login",
+        json={"username": "testuser2"},
+        content_type="application/json",
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -251,7 +261,9 @@ def test_login_missing_username(client):
 def test_create_group(client):
     # First create a user
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
 
     # Then create a group
@@ -292,7 +304,9 @@ def test_create_group_nonexistent_user(client):
 def test_join_group(client):
     # First create a user and a group
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
     client.post(
         "/create_group",
@@ -301,7 +315,9 @@ def test_join_group(client):
     )
 
     # Create another user
-    client.post("/login", json={"username": "joiner"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "joiner"}, content_type="application/json"
+    )
 
     # Join the group
     response = client.post(
@@ -317,7 +333,9 @@ def test_join_group(client):
 def test_join_group_already_member(client):
     # First create a user and a group
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
     client.post(
         "/create_group",
@@ -339,7 +357,9 @@ def test_join_group_already_member(client):
 def test_delete_group(client):
     # First create a user and a group
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
     client.post(
         "/create_group",
@@ -367,7 +387,9 @@ def test_delete_group(client):
 def test_delete_group_not_creator(client):
     # First create a user and a group
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
     client.post(
         "/create_group",
@@ -376,7 +398,9 @@ def test_delete_group_not_creator(client):
     )
 
     # Create another user
-    client.post("/login", json={"username": "joiner"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "joiner"}, content_type="application/json"
+    )
 
     # Join the group
     client.post(
@@ -399,7 +423,9 @@ def test_delete_group_not_creator(client):
 def test_admin_delete_group(client):
     # First create a user and a group
     client.post(
-        "/login", json={"username": "groupcreator"}, content_type="application/json"
+        "/login",
+        json={"username": "groupcreator"},
+        content_type="application/json",
     )
     client.post(
         "/create_group",
@@ -409,7 +435,9 @@ def test_admin_delete_group(client):
 
     # Create an admin user
     client.post(
-        "/login", json={"username": "adminuser"}, content_type="application/json"
+        "/login",
+        json={"username": "adminuser"},
+        content_type="application/json",
     )
 
     # Admin deletes the group
@@ -424,7 +452,9 @@ def test_admin_delete_group(client):
 def test_get_user_groups(client):
     # Create a user
     client.post(
-        "/login", json={"username": "testuser3"}, content_type="application/json"
+        "/login",
+        json={"username": "testuser3"},
+        content_type="application/json",
     )
 
     # Create a group
@@ -448,9 +478,15 @@ def test_get_user_groups(client):
 
 def test_add_expense(client):
     # Create users
-    client.post("/login", json={"username": "payer"}, content_type="application/json")
-    client.post("/login", json={"username": "member1"}, content_type="application/json")
-    client.post("/login", json={"username": "member2"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "payer"}, content_type="application/json"
+    )
+    client.post(
+        "/login", json={"username": "member1"}, content_type="application/json"
+    )
+    client.post(
+        "/login", json={"username": "member2"}, content_type="application/json"
+    )
 
     # Create a group
     client.post(
@@ -501,19 +537,25 @@ def test_add_expense(client):
     assert len(debts) == 3
 
     # Check that member1 owes 100
-    member1_debt = next((debt for debt in debts if debt["username"] == "member1"), None)
+    member1_debt = next(
+        (debt for debt in debts if debt["username"] == "member1"), None
+    )
     assert member1_debt is not None
     assert member1_debt["status"] == "owes you"
     assert member1_debt["amount"] == 100
 
     # Check that member2 owes 100
-    member2_debt = next((debt for debt in debts if debt["username"] == "member2"), None)
+    member2_debt = next(
+        (debt for debt in debts if debt["username"] == "member2"), None
+    )
     assert member2_debt is not None
     assert member2_debt["status"] == "owes you"
     assert member2_debt["amount"] == 100
 
     # Check that payer owes nothing to himself
-    payer_debt = next((debt for debt in debts if debt["username"] == "payer"), None)
+    payer_debt = next(
+        (debt for debt in debts if debt["username"] == "payer"), None
+    )
     assert payer_debt is not None
     assert payer_debt["status"] == "settled up"
     assert payer_debt["amount"] == 0
@@ -521,7 +563,9 @@ def test_add_expense(client):
 
 def test_add_expense_nonexistent_group(client):
     # Create a user
-    client.post("/login", json={"username": "payer"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "payer"}, content_type="application/json"
+    )
 
     # Try to add an expense to a nonexistent group
     response = client.post(
@@ -541,7 +585,9 @@ def test_add_expense_nonexistent_group(client):
 
 def test_add_expense_nonexistent_user(client):
     # Create a group
-    client.post("/login", json={"username": "creator"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "creator"}, content_type="application/json"
+    )
     client.post(
         "/create_group",
         json={"username": "creator", "group_name": "test_group"},
@@ -566,9 +612,13 @@ def test_add_expense_nonexistent_user(client):
 
 def test_add_expense_not_member(client):
     # Create users
-    client.post("/login", json={"username": "creator"}, content_type="application/json")
     client.post(
-        "/login", json={"username": "nonmember"}, content_type="application/json"
+        "/login", json={"username": "creator"}, content_type="application/json"
+    )
+    client.post(
+        "/login",
+        json={"username": "nonmember"},
+        content_type="application/json",
     )
 
     # Create a group
@@ -596,8 +646,12 @@ def test_add_expense_not_member(client):
 
 def test_settle_up(client):
     # Create users
-    client.post("/login", json={"username": "payer"}, content_type="application/json")
-    client.post("/login", json={"username": "debtor"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "payer"}, content_type="application/json"
+    )
+    client.post(
+        "/login", json={"username": "debtor"}, content_type="application/json"
+    )
 
     # Create a group
     client.post(
@@ -627,7 +681,11 @@ def test_settle_up(client):
     # Settle up
     response = client.post(
         "/settle_up",
-        json={"username": "debtor", "group_name": "settle_group", "to_user": "payer"},
+        json={
+            "username": "debtor",
+            "group_name": "settle_group",
+            "to_user": "payer",
+        },
         content_type="application/json",
     )
 
@@ -653,8 +711,12 @@ def test_settle_up(client):
 def test_kick_user(client):
 
     # Create users
-    client.post("/login", json={"username": "payer"}, content_type="application/json")
-    client.post("/login", json={"username": "debtor"}, content_type="application/json")
+    client.post(
+        "/login", json={"username": "payer"}, content_type="application/json"
+    )
+    client.post(
+        "/login", json={"username": "debtor"}, content_type="application/json"
+    )
 
     # Create a group
     client.post(
@@ -745,7 +807,9 @@ def test_performance(client):
     users: list[str] = [str(i) for i in range(size)]
     # Create users
     for user in users:
-        client.post("/login", json={"username": user}, content_type="application/json")
+        client.post(
+            "/login", json={"username": user}, content_type="application/json"
+        )
 
     for creator in users:
         # Create a group

@@ -29,7 +29,7 @@ def jsonify(*args, **kwargs) -> Response:
 class User:
     username: str
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str]:
         return {"username": self.username}
 
 
@@ -96,7 +96,6 @@ def load_users(load_users_dict: dict[str, User]) -> None:
         if not f.read(1):
             # file is empty
             return
-        
     with open(USERS_FILE, "r") as f:
         users_data = json.load(f)
         load_users_dict.update(
