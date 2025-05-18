@@ -955,3 +955,270 @@ def test_performance(client):
             },
             content_type="application/json",
         )
+
+
+def test_settle_up_missing_keys(client):
+    # Test missing username
+    response = client.post(
+        "/settle_up",
+        json={"to_user": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 400
+
+    # Test missing to_user
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 400
+
+    # Test missing group_name
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 400
+
+
+def test_settle_up_nonexistent_entities(client):
+    # Create a user and group for testing
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Test nonexistent username
+    response = client.post(
+        "/settle_up",
+        json={"username": "nonexistent", "to_user": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 404
+
+    # Test nonexistent to_user
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "nonexistent", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 404
+
+    # Test nonexistent group
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user1", "group_name": "nonexistent"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 404
+
+
+def test_settle_up_membership_combinations(client):
+    # Create users and group
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post("/login", json={"username": "user2"}, content_type="application/json")
+    client.post("/login", json={"username": "user3"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Test when username is not a member
+    response = client.post(
+        "/settle_up",
+        json={"username": "user2", "to_user": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 403
+
+    # Test when to_user is not a member
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 403
+
+    # Test when both are members
+    client.post(
+        "/join_group",
+        json={"username": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["transactions_settled"] == 0
+
+
+def test_settle_up_same_user(client):
+    # Create user and group
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Test settling up with self
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["transactions_settled"] == 0
+
+def test_settle_up_no_transactions(client):
+    # Create users and group
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post("/login", json={"username": "user2"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    client.post(
+        "/join_group",
+        json={"username": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Test settling up with no transactions
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["transactions_settled"] == 0
+
+
+def test_settle_up_with_transactions(client):
+    # Create users and group
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post("/login", json={"username": "user2"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    client.post(
+        "/join_group",
+        json={"username": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Add some expenses to create transactions
+    client.post(
+        "/add_expense",
+        json={"username": "user1", "group_name": "group1", "amount": 100},
+        content_type="application/json",
+    )
+    client.post(
+        "/add_expense",
+        json={"username": "user2", "group_name": "group1", "amount": 100},
+        content_type="application/json",
+    )
+
+    # Test settling up with transactions
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["transactions_settled"] > 0
+
+
+def test_settle_up_intertwined_transactions(client):
+    # Create users and group
+    client.post("/login", json={"username": "user1"}, content_type="application/json")
+    client.post("/login", json={"username": "user2"}, content_type="application/json")
+    client.post("/login", json={"username": "user3"}, content_type="application/json")
+    client.post(
+        "/create_group",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    client.post(
+        "/join_group",
+        json={"username": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    client.post(
+        "/join_group",
+        json={"username": "user3", "group_name": "group1"},
+        content_type="application/json",
+    )
+
+    # Add expenses to create intertwined transactions
+    client.post(
+        "/add_expense",
+        json={"username": "user1", "group_name": "group1", "amount": 300},
+        content_type="application/json",
+    )
+    client.post(
+        "/add_expense",
+        json={"username": "user2", "group_name": "group1", "amount": 300},
+        content_type="application/json",
+    )
+    client.post(
+        "/add_expense",
+        json={"username": "user3", "group_name": "group1", "amount": 300},
+        content_type="application/json",
+    )
+
+    # Get initial debts
+    response = client.post(
+        "/get_debts",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    initial_debts = json.loads(response.data)["debts"]
+
+    # Settle up between user1 and user2
+    response = client.post(
+        "/settle_up",
+        json={"username": "user1", "to_user": "user2", "group_name": "group1"},
+        content_type="application/json",
+    )
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 200
+
+    # Get final debts
+    response = client.post(
+        "/get_debts",
+        json={"username": "user1", "group_name": "group1"},
+        content_type="application/json",
+    )
+    final_debts = json.loads(response.data)["debts"]
+
+    # Verify user3's debt is unchanged
+    user3_initial = next(d for d in initial_debts if d["username"] == "user3")
+    user3_final = next(d for d in final_debts if d["username"] == "user3")
+    assert user3_initial["amount"] == user3_final["amount"]
