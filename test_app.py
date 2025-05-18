@@ -45,7 +45,7 @@ def noisy_files():
         os.remove("users.json")
     if os.path.exists("groups.json"):
         os.remove("groups.json")
-    # subprocess.call(["./clr.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     with open(USERS_FILE, "bw") as f:
         f.write(randbytes(100))
 

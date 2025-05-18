@@ -51,7 +51,7 @@ class Group:
     def __init__(self, name, creator):
         self.name = str(name)
         self.creator = str(creator)
-        self.members = [str(creator)]
+        self.members: list[str] = [str(creator)]
         self.transactions: list[Transaction] = []
 
     def to_dict(self):
@@ -92,12 +92,13 @@ def load_data(
 def load_users(load_users_dict: dict[str, User]) -> None:
     if not os.path.exists(USERS_FILE):
         return
+
     with open(USERS_FILE, "r") as f:
-        if not f.read(1):
-            # file is empty
+        try:
+            users_data = json.load(f)
+        except Exception:
             return
-    with open(USERS_FILE, "r") as f:
-        users_data = json.load(f)
+
         load_users_dict.update(
             {username: User(username) for username in users_data}
         )
@@ -106,13 +107,13 @@ def load_users(load_users_dict: dict[str, User]) -> None:
 def load_groups(load_groups_dict: dict[str, Group]) -> None:
     if not os.path.exists(GROUPS_FILE):
         return
-    with open(GROUPS_FILE, "r") as f:
-        if not f.read(1):
-            # file is empty
-            return
 
     with open(GROUPS_FILE, "r") as f:
-        groups_data = json.load(f)
+        try:
+            groups_data = json.load(f)
+        except Exception:
+            return
+
         for group_dict in groups_data:
             group = Group(group_dict["name"], group_dict["creator"])
             group.members = group_dict["members"]
