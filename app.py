@@ -92,7 +92,11 @@ def load_data(
 def load_users(load_users_dict: dict[str, User]) -> None:
     if not os.path.exists(USERS_FILE):
         return
-
+    with open(USERS_FILE, "r") as f:
+        if not f.read(1):
+            # file is empty
+            return
+        
     with open(USERS_FILE, "r") as f:
         users_data = json.load(f)
         load_users_dict.update(
@@ -103,6 +107,10 @@ def load_users(load_users_dict: dict[str, User]) -> None:
 def load_groups(load_groups_dict: dict[str, Group]) -> None:
     if not os.path.exists(GROUPS_FILE):
         return
+    with open(GROUPS_FILE, "r") as f:
+        if not f.read(1):
+            # file is empty
+            return
 
     with open(GROUPS_FILE, "r") as f:
         groups_data = json.load(f)
