@@ -78,12 +78,13 @@ USERS_FILE = "users.json"
 GROUPS_FILE = "groups.json"
 
 
-def load_data() -> None:
+def load_data(
+    load_users_dict: dict[str, User], load_groups_dict: dict[str, Group]
+) -> None:
     """
     Loads the list of Groups and Users from json file
     when the server starts
     """
-    global USERS
 
     if not os.path.exists(USERS_FILE):
         return
@@ -92,7 +93,9 @@ def load_data() -> None:
 
     with open(USERS_FILE, "r") as f:
         users_data = json.load(f)
-        USERS = {username: User(username) for username in users_data}
+        load_users_dict.update(
+            {username: User(username) for username in users_data}
+        )
 
     with open(GROUPS_FILE, "r") as f:
         groups_data = json.load(f)
@@ -101,7 +104,7 @@ def load_data() -> None:
             group.members = group_dict["members"]
 
             # Reconstruct transactions
-            for t_dict in group_dict.get("transactions", dict):
+            for t_dict in group_dict.get("transactions", dict()):
                 transaction = Transaction(
                     t_dict["from_user"],
                     t_dict["to_user"],
@@ -109,7 +112,7 @@ def load_data() -> None:
                 )
                 group.transactions.append(transaction)
 
-            GROUPS[group.name] = group
+            load_groups_dict[group.name] = group
 
 
 def save_data() -> None:
@@ -119,14 +122,18 @@ def save_data() -> None:
     For a faster response time, the strings to write
     are first put into a queue and the  writing is done after responding
     """
-    users_json: str = json.dumps(
-        [user for user in USERS.keys()]
-    )  # this is still called before we return
-    write_queue.put((USERS_FILE, users_json))
+    users_json: str = json.dumps([username for username in USERS.keys()])
 
     groups_json: str = json.dumps(
         [group.to_dict() for group in GROUPS.values()]
     )
+
+    # with open(USERS_FILE, "w")as f:
+    #     f.write(users_json)
+    # with open(GROUPS_FILE, "w") as f:
+    #     f.write(groups_json)
+
+    write_queue.put((USERS_FILE, users_json))
     write_queue.put((GROUPS_FILE, groups_json))
 
 
@@ -575,7 +582,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
-    load_data()
+    load_data(USERS, GROUPS)
 
     thread = threading.Thread(target=writer_thread)
     thread.start()
