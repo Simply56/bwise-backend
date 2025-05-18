@@ -89,7 +89,7 @@ def load_data(
     load_groups(load_groups_dict)
 
 
-def load_users(load_users_dict: dict[str, User]):
+def load_users(load_users_dict: dict[str, User]) -> None:
     if not os.path.exists(USERS_FILE):
         return
 
@@ -100,7 +100,7 @@ def load_users(load_users_dict: dict[str, User]):
         )
 
 
-def load_groups(load_groups_dict: dict[str, Group]):
+def load_groups(load_groups_dict: dict[str, Group]) -> None:
     if not os.path.exists(GROUPS_FILE):
         return
 

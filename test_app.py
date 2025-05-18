@@ -2,23 +2,170 @@ import pytest
 from app import app
 import subprocess
 import json
-
-
-@pytest.fixture(autouse=True)
-def run_before_each_test(request: pytest.FixtureRequest) -> None:
-    if "skip_clear" in request.keywords:
-        return  # Skip the clear script
-    subprocess.call(["./clr.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+import os
 
 
 @pytest.fixture
 def client():
     app.testing = True
-    return app.test_client()
+    yield app.test_client()
+
+    # Ensure files don't exist
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
 
 
+@pytest.fixture
+def empty_files():
 
+    with open("users.json", "w") as f:
+        f.write("")
+
+    with open("groups.json", "w") as f:
+        f.write("")
+
+    yield
+
+    # Cleanup after tests
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
+
+
+@pytest.fixture
+def noisy_files():
+    """Fixture to create test files with random garbage"""
+    # Ensure files don't exist
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
+    # subprocess.call(["./clr.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.call(["cat /dev/urandom | head > groups.json"])
+    subprocess.call(["cat /dev/urandom | head > users.json"])
+
+    yield
+
+    # Cleanup after tests
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
+
+
+@pytest.fixture
+def setup_test_files():
+    """Fixture to create test files with known data"""
+    with open("users.json", "w") as f:
+        f.write('["user1", "user2", "user3"]')
+
+    with open("groups.json", "w") as f:
+        f.write(
+            '[{"name": "test_group", "creator": "user1", "members": ["user1", "user2", "user3"], "transactions": [{"from_user": "user1", "to_user": "user3", "amount": 100.0}, {"from_user": "user2", "to_user": "user3", "amount": 100.0}]}]'
+        )
+
+    yield
+
+    # Cleanup after tests
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
+
+
+def test_load_data_missing_files():
+    """Test that load_data handles missing files gracefully"""
+    from app import load_data
+
+    # Ensure files don't exist
+    if os.path.exists("users.json"):
+        os.remove("users.json")
+    if os.path.exists("groups.json"):
+        os.remove("groups.json")
+
+    # Clear existing data
+    test_user_dict = dict()
+    test_group_dict = dict()
+
+    # Load data (should not raise any errors)
+    load_data(test_user_dict, test_group_dict)
+
+    # Verify no data was loaded
+    assert len(test_user_dict) == 0
+    assert len(test_group_dict) == 0
+
+
+def test_load_empty_files(empty_files):
+    """Test that load_data handles empty files gracefully"""
+    from app import load_data
+
+    # Clear existing data
+    test_user_dict = dict()
+    test_group_dict = dict()
+
+    # Load data (should not raise any errors)
+    load_data(test_user_dict, test_group_dict)
+
+    # Verify no data was loaded
+    assert len(test_user_dict) == 0
+    assert len(test_group_dict) == 0
+
+
+def test_load_data_users(setup_test_files):
+    """Test that users are loaded correctly from file"""
+    from app import load_data
+
+    test_user_dict = dict()
+    test_group_dict = dict()
+
+    load_data(test_user_dict, test_group_dict)
+
+    # Verify users were loaded
+    assert len(test_user_dict) == 3  # Changed from USERS.keys() to just USERS
+    assert "user1" in test_user_dict
+    assert "user2" in test_user_dict
+    assert "user3" in test_user_dict
+
+    # Verify user objects are correct
+    assert test_user_dict["user1"].username == "user1"
+    assert test_user_dict["user2"].username == "user2"
+    assert test_user_dict["user3"].username == "user3"
+
+
+def test_load_data_groups(setup_test_files):
+    """Test that groups and their transactions are loaded correctly"""
+    from app import load_data
+
+    test_user_dict = dict()
+    test_group_dict = dict()
+
+    load_data(test_user_dict, test_group_dict)
+    # Verify group was loaded
+    assert len(test_group_dict) == 1
+    assert "test_group" in test_group_dict
+
+    group = test_group_dict["test_group"]
+
+    # Verify group properties
+    assert group.name == "test_group"
+    assert group.creator == "user1"
+    assert set(group.members) == {"user1", "user2", "user3"}
+
+    # Verify transactions
+    assert len(group.transactions) == 2
+
+    # Verify first transaction
+    assert group.transactions[0].from_user == "user1"
+    assert group.transactions[0].to_user == "user3"
+    assert group.transactions[0].amount == 100.0
+
+    # Verify second transaction
+    assert group.transactions[1].from_user == "user2"
+    assert group.transactions[1].to_user == "user3"
+    assert group.transactions[1].amount == 100
 
 
 def test_all_have_message(client):
