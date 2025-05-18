@@ -38,15 +38,20 @@ def empty_files():
 @pytest.fixture
 def noisy_files():
     """Fixture to create test files with random garbage"""
+    from app import GROUPS_FILE, USERS_FILE
+    from random import randbytes
     # Ensure files don't exist
     if os.path.exists("users.json"):
         os.remove("users.json")
     if os.path.exists("groups.json"):
         os.remove("groups.json")
     # subprocess.call(["./clr.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.call(["cat /dev/urandom | head > groups.json"])
-    subprocess.call(["cat /dev/urandom | head > users.json"])
+    with open(USERS_FILE, "bw") as f:
+        f.write(randbytes(100))
 
+    with open(GROUPS_FILE, "bw") as f:
+        f.write(randbytes(100))
+        
     yield
 
     # Cleanup after tests
@@ -166,6 +171,19 @@ def test_load_data_groups(setup_test_files):
     assert group.transactions[1].from_user == "user2"
     assert group.transactions[1].to_user == "user3"
     assert group.transactions[1].amount == 100
+
+def test_load_invalid_data(noisy_files):
+    from app import load_data
+
+    test_user_dict = dict()
+    test_group_dict = dict()
+
+    load_data(test_user_dict, test_group_dict)
+
+
+    # Verify no data was loaded
+    assert len(test_user_dict) == 0
+    assert len(test_group_dict) == 0
 
 
 def test_all_have_message(client):
