@@ -271,7 +271,7 @@ def join_group() -> tuple[Response, int]:
             jsonify(
                 {"message": f"{username} is already member of {group.name}"}
             ),
-            409,
+            200,
         )
 
     group.members.append(username)
