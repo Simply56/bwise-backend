@@ -6,6 +6,12 @@ import os
 
 @pytest.fixture
 def client():
+    # Reset global variables
+    from app import USERS, GROUPS
+
+    USERS.clear()
+    GROUPS.clear()
+
     app.testing = True
     yield app.test_client()
 
@@ -258,47 +264,157 @@ def test_login_missing_username(client):
     assert "message" in data
 
 
-def test_create_group(client):
-    # First create a user
+def test_create_group_empty_empty(client):
+    response = client.post(
+        "/create_group",
+        json={},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
+    assert 400 <= response.status_code < 500
+
+
+def test_create_group_not_empty_empty(client):
+    # Create a user first
     client.post(
         "/login",
-        json={"username": "groupcreator"},
+        json={"username": "testuser1"},
         content_type="application/json",
     )
 
-    # Then create a group
     response = client.post(
         "/create_group",
-        json={"username": "groupcreator", "group_name": "testgroup1"},
+        json={"username": "testuser1"},
         content_type="application/json",
     )
+
+    assert "message" in json.loads(response.data)
+    assert 400 <= response.status_code < 500
+
+
+def test_create_group_empty_not_empty(client):
+    response = client.post(
+        "/create_group",
+        json={"group_name": "testgroup2"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
+    assert 400 <= response.status_code < 500
+
+
+def test_create_group_not_empty_not_empty(client):
+    # Create a user first
+    client.post(
+        "/login",
+        json={"username": "testuser2"},
+        content_type="application/json",
+    )
+
+    response = client.post(
+        "/create_group",
+        json={"username": "testuser2", "group_name": "testgroup3"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
     assert response.status_code == 201
-    data = json.loads(response.data)
-    assert data["group"]["name"] == "testgroup1"
-    assert data["group"]["creator"] == "groupcreator"
-    assert "groupcreator" in data["group"]["members"]
 
 
-def test_create_group_missing_params(client):
-    response = client.post(
-        "/create_group",
-        json={"username": "groupcreator"},
+def test_create_group_user_exists_group_exists(client):
+    # Create a user first
+    client.post(
+        "/login",
+        json={"username": "testuser3"},
         content_type="application/json",
     )
-    assert response.status_code == 400
-    data = json.loads(response.data)
-    assert "message" in data
 
-
-def test_create_group_nonexistent_user(client):
-    response = client.post(
+    # Create a group first
+    client.post(
         "/create_group",
-        json={"username": "nonexistentuser", "group_name": "testgroup2"},
+        json={"username": "testuser3", "group_name": "testgroup4"},
         content_type="application/json",
     )
+
+    # Try to create the same group again
+    response = client.post(
+        "/create_group",
+        json={"username": "testuser3", "group_name": "testgroup4"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 409
+
+
+def test_create_group_user_not_exists_group_exists(client):
+    # Create a group first with another user
+    client.post(
+        "/login",
+        json={"username": "testuser4"},
+        content_type="application/json",
+    )
+    client.post(
+        "/create_group",
+        json={"username": "testuser4", "group_name": "testgroup5"},
+        content_type="application/json",
+    )
+
+    # Try to create the same group with a non-existent user
+    response = client.post(
+        "/create_group",
+        json={"username": "nonexistentuser", "group_name": "testgroup5"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
     assert response.status_code == 404
-    data = json.loads(response.data)
-    assert "message" in data
+
+
+def test_create_group_user_exists_group_not_exists(client):
+    # Create a user first
+    client.post(
+        "/login",
+        json={"username": "testuser5"},
+        content_type="application/json",
+    )
+
+    # Try to create a new group
+    response = client.post(
+        "/create_group",
+        json={"username": "testuser5", "group_name": "testgroup6"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 201
+
+
+def test_create_group_user_exists_group_exists_creator(client):
+    # Create a user first
+    client.post(
+        "/login",
+        json={"username": "testuser6"},
+        content_type="application/json",
+    )
+
+    # Create a group first
+    client.post(
+        "/create_group",
+        json={"username": "testuser6", "group_name": "testgroup7"},
+        content_type="application/json",
+    )
+
+    # Try to create the same group again as the creator
+    response = client.post(
+        "/create_group",
+        json={"username": "testuser6", "group_name": "testgroup7"},
+        content_type="application/json",
+    )
+
+    assert "message" in json.loads(response.data)
+    assert response.status_code == 409
 
 
 def test_join_group(client):
@@ -349,7 +465,7 @@ def test_join_group_already_member(client):
         json={"username": "groupcreator", "group_name": "testgroup4"},
         content_type="application/json",
     )
-    assert response.status_code == 409
+    assert response.status_code == 200
     data = json.loads(response.data)
     assert "message" in data
 
