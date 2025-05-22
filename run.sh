@@ -1,5 +1,5 @@
 #!/bin/bash
 
 ./stop.sh
-waitress-serve app.py >server.log 2>&1 &
+python3 app.py >server.log 2>&1 &
 disown
