@@ -10,15 +10,16 @@ import waitress
 from flask.wrappers import Response
 
 app = flask.Flask(__name__)
-DEBUG: bool = True
+DEBUG: bool = False
+LOG: bool = True
 
 
 def jsonify(*args, **kwargs) -> Response:
     """
     Wrapper of the flask.jsonify() function
-    that prints the passed args. Used for debugging only
+    that prints the passed args. Used for Logging
     """
-    if DEBUG:
+    if LOG:
         print()
         print(args)
     return flask.jsonify(*args, **kwargs)
@@ -603,6 +604,6 @@ if __name__ == "__main__":
     thread.start()
 
     if DEBUG:
-        app.run(host="0.0.0.0", port=5000)
+        app.run(host="0.0.0.0", port=5000, debug=True)
     else:
         waitress.serve(app, host="0.0.0.0", port=5000)
